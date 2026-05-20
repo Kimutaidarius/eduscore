@@ -1,0 +1,70 @@
+/* SPA Transition Styles */
+.main-content {
+    transition: opacity 0.2s ease-in-out;
+    opacity: 1;
+}
+
+/* Loading animation */
+.spa-loading-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    display: none;
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+.spa-loading-indicator .spa-loader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spa-loading-indicator i {
+    font-size: 20px;
+}
+
+/* Fade animation for content swap */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.main-content > * {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Error page styling */
+.error-container {
+    text-align: center;
+    padding: 60px 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.error-container i {
+    font-size: 64px;
+    color: #ef4444;
+    margin-bottom: 20px;
+}
+
+.error-container h2 {
+    color: #1f2937;
+    margin-bottom: 10px;
+}
+
+.error-container p {
+    color: #6b7280;
+    margin-bottom: 30px;
+}

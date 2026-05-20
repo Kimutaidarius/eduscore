@@ -1,0 +1,259 @@
+.main-wrapper {
+  display: flex;
+  flex-direction: row;
+}
+.content-wrapper {
+  margin-left: var(--sidebar-width);
+  padding: 25px;
+  flex-grow: 1;
+  transition: margin-left 0.3s ease;
+}
+/* select buttons  */
+.select-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.select-buttons select {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+/* =============== Buttons =============== */
+.export-print-buttons{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.export-print-buttons button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.export-print-buttons button:hover {
+  background-color: var(--primary-hover);
+}
+@media (max-width: 768px) {
+  .export-print-buttons {
+    flex-direction: column;
+  }
+
+  .export-print-buttons button {
+    width: 100%;
+  }
+}
+/* table styles */
+            .table-responsive {
+                flex-grow: 1; /* Important: Allows table area to fill remaining vertical space */
+                overflow-x: auto; /* THIS IS CRUCIAL FOR THE HORIZONTAL SCROLLBAR */
+                overflow-y: auto; /* Keeps the vertical scrollbar */
+                min-height: 0; /* Essential for flex items with overflow to work correctly */
+                background-color: #fff;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+                border: 1px solid #e0e0e0;
+               
+            }
+
+            /* Add this to your CSS to style the scrollbar (Webkit browsers only) */
+            .table-responsive::-webkit-scrollbar {
+                width: 10px; /* Width of the vertical scrollbar */
+                height: 10px; /* Height of the horizontal scrollbar (if present) */
+            }
+
+            .table-responsive::-webkit-scrollbar-track {
+                background: #f1f1f1; /* Color of the scrollbar track */
+                border-radius: 10px;
+            }
+
+            .table-responsive::-webkit-scrollbar-thumb {
+                background: #888; /* Color of the scrollbar thumb */
+                border-radius: 10px;
+                border: 2px solid #f1f1f1; /* Creates a small padding effect */
+            }
+
+            .table-responsive::-webkit-scrollbar-thumb:hover {
+                background: #555; /* Color of the scrollbar thumb on hover */
+            }
+
+            table.display {
+                width: 100%;
+                border-collapse: collapse;
+                font-family: 'Inter', sans-serif; /* Consistent font */
+                min-width: fit-content; /* Ensures the table will be at least as wide as its content needs, triggering horizontal scroll if wider than container */
+                
+            }
+            .panel-body.p-20,
+.students-management-area,
+.table-responsive {
+    min-width: 0; /* allows shrinking */
+}
+
+
+            table.display thead th,
+            table.display tbody td {
+                white-space: nowrap; /* Ensures content stays on one line within cells */
+                padding: 10px 15px;
+                border-bottom: 1px solid #e9ecef;
+                vertical-align: middle;
+                color: #495057;
+            }
+
+            /* Ensure the actions cell also follows this if it contains multiple buttons on one line */
+            table.display tbody td.actions {
+                white-space: nowrap;
+            }
+
+            table.display thead th {
+                background-color: #e9ecef; /* Light gray for header */
+                color: #343a40; /* Dark text for header */
+                font-weight: bold;
+                padding: 12px 15px;
+                text-align: left;
+                border-bottom: 2px solid #dee2e6; /* Separator for header */
+                position: sticky; /* Make header sticky */
+                top: 0; /* Stick to the top of its scrollable container */
+                z-index: 10; /* Ensure it stays above scrolling rows */
+            }
+
+            table.display tbody td {
+                padding: 10px 15px;
+                border-bottom: 1px solid #e9ecef; /* Lighter separator for rows */
+                vertical-align: middle;
+                color: #495057; /* Standard text color */
+            }
+
+            table.display tbody tr:nth-child(even) {
+                background-color: #f8f9fa; /* Alternate row background */
+            }
+
+            table.display tbody tr:hover {
+                background-color: #e2f0ff; /* Hover effect */
+            }
+
+            /* Action buttons inside table cells */
+            .table-action-btn {
+                background-color: transparent;
+                font-size: 0.85rem;
+                font-weight: 500;
+                padding: 6px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                height: auto; /* Reset height for table buttons */
+                width: auto; /* Reset width for table buttons */
+                box-shadow: none; /* No shadow for small table buttons */
+                margin-right: 5px; /* Space between table buttons */
+                white-space: nowrap; /* Ensure button text doesn't wrap */
+            }
+            .table-action-btn:last-child {
+                margin-right: 0;
+            }
+
+            .edit-btn {
+                border: 1px solid #007bff;
+                color: #007bff;
+            }
+            .edit-btn:hover {
+                background-color: #007bff;
+                color: white;
+            }
+
+            .delete-btn {
+                border: 1px solid #dc3545;
+                color: #dc3545;
+            }
+            .delete-btn:hover {
+                background-color: #dc3545;
+                color: white;
+            }
+
+            .add-guardian-btn {
+                border: 1px solid #28a745;
+                color: #28a745;
+            }
+            .add-guardian-btn:hover {
+                background-color: #28a745;
+                color: white;
+            }
+.table-footer {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-start; /* left align */
+}
+
+.pagination button {
+    margin: 0 3px;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    background: #f8f9fa;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.pagination button.active {
+    background: #007bff;
+    color: #fff;
+    font-weight: bold;
+}
+
+.pagination button:disabled {
+    background: #e9ecef;
+    cursor: not-allowed;
+}
+
+            /* Pagination Controls */
+            .pagination-controls {
+                display: flex;
+                justify-content: center; /* Center the pagination buttons */
+                align-items: center;
+                gap: 10px;
+                margin-top: 20px;
+                flex-shrink: 0; /* Prevent pagination from shrinking */
+            }
+
+            .page-numbers {
+                font-weight: 500;
+                color: #555;
+            }
+
+            /* Status Pills (Gender, Entry) */
+            .status-pill {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 4px 8px; /* Smaller padding for status pills */
+                border-radius: 15px; /* More rounded */
+                font-size: 0.75em; /* Smaller font */
+                font-weight: 600;
+                text-transform: uppercase;
+                color: #fff;
+                min-width: 50px; /* Smaller min-width */
+            }
+
+            .gender-male {
+                background-color: #d1ecf1; /* Light blue */
+                color: #0c5460; /* Darker blue text */
+            }
+
+            .gender-female {
+                background-color: #f8d7da; /* Light red */
+                color: #721c24; /* Darker red text */
+            }
+
+            .entry-status { /* For 'Status' column */
+                background-color: #d4edda; /* Light green */
+                color: #155724; /* Darker green text */
+            }

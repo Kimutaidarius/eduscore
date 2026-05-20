@@ -1,0 +1,7 @@
+[2026-05-20 13:06:34] [info] Localhost config loaded
+Data: {
+    "database": "srms",
+    "environment": "sandbox",
+    "base_url": "http:\/\/localhost\/eduscore"
+}
+--------------------------------------------------------------------------------

@@ -1,0 +1,164 @@
+User-agent: *
+Allow: /
+
+# ============================================
+# DISALLOW - System & Backend Folders
+# ============================================
+Disallow: /ajax/
+Disallow: /api/
+Disallow: /api_handlers/
+Disallow: /assets/
+Disallow: /config/
+Disallow: /cron/
+Disallow: /css/
+Disallow: /etc/
+Disallow: /exports/
+Disallow: /generated_reports/
+Disallow: /includes/
+Disallow: /js/
+Disallow: /logs/
+Disallow: /middleware/
+Disallow: /mpdf/
+Disallow: /uploads/
+Disallow: /vendor/
+Disallow: /webhook/
+Disallow: /workers/
+
+# ============================================
+# DISALLOW - Sub-applications (Internal Use)
+# ============================================
+Disallow: /bulksms/includes/
+Disallow: /bulksms/config/
+Disallow: /fee_system/includes/
+Disallow: /fee_system/config/
+Disallow: /parents-portal/includes/
+Disallow: /parents-portal/config/
+
+# ============================================
+# DISALLOW - Authentication Pages (DO NOT INDEX)
+# ============================================
+Disallow: /login.php
+Disallow: /login
+Disallow: /register.php
+Disallow: /register
+Disallow: /activation-module.php
+Disallow: /logout
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# ============================================
+# DISALLOW - Dashboard & Internal Pages (Require Login)
+# ============================================
+Disallow: /dashboard
+Disallow: /classes
+Disallow: /students
+Disallow: /studentslist
+Disallow: /teachers
+Disallow: /subjects
+Disallow: /roles
+Disallow: /lessons
+Disallow: /grading
+Disallow: /exams
+Disallow: /scores
+Disallow: /meritlist
+Disallow: /analytics-system
+Disallow: /exam-dashboard
+Disallow: /analytics-page.php
+Disallow: /reports
+Disallow: /sms
+Disallow: /promotion
+Disallow: /utility
+Disallow: /timetable
+Disallow: /attendance
+Disallow: /subscription
+
+# ============================================
+# DISALLOW - Query Parameters (Prevent duplicate content)
+# ============================================
+Disallow: /*?*
+Disallow: /*.php?*
+
+# ============================================
+# ALLOW - Critical Public Assets
+# ============================================
+Allow: /images/
+Allow: /css/public/
+Allow: /js/public/
+Allow: /favicon.ico
+Allow: /site.webmanifest
+
+# ============================================
+# ALLOW - Core Public Landing Pages
+# ============================================
+Allow: /$
+Allow: /index.php$
+
+# ============================================
+# ALLOW - Blog Pages (FULLY INDEX THESE!)
+# ============================================
+Allow: /blog$
+Allow: /blog/
+Allow: /blog.php$
+Allow: /blog/*
+Allow: /blog-post.php$
+
+# ============================================
+# ALLOW - Analytics SEO Landing Pages (INDEX THESE!)
+# ============================================
+Allow: /analytics$
+Allow: /analytics/
+Allow: /analytics-page$
+Allow: /analytics-page/
+Allow: /analytics.php$
+Allow: /analytics-dashboard$
+Allow: /analytics-dashboard/
+Allow: /exam-analysis$
+Allow: /exam-analysis/
+Allow: /exam-analytics$
+Allow: /exam-analytics/
+Allow: /student-performance$
+Allow: /student-performance/
+Allow: /report-cards$
+Allow: /report-cards/
+
+# ============================================
+# ALLOW - Fee System Pages (INDEX THESE!)
+# ============================================
+Allow: /feesystem$
+Allow: /feesystem/
+Allow: /feesystem.php$
+Allow: /fee-system$
+Allow: /fee-system/
+Allow: /fee-management$
+Allow: /fee-management/
+Allow: /fee_system/$
+
+# ============================================
+# ALLOW - Parents Portal Pages (INDEX THESE!)
+# ============================================
+Allow: /parents-portal$
+Allow: /parents-portal/
+Allow: /parents-portal.php$
+Allow: /parents$
+Allow: /parents/
+Allow: /parent-portal$
+Allow: /parent-portal/
+
+# ============================================
+# ALLOW - Bulk SMS Pages (INDEX THESE!)
+# ============================================
+Allow: /bulksms$
+Allow: /bulksms/
+Allow: /bulk-sms$
+Allow: /bulk-sms/
+
+# ============================================
+# ALLOW - Other Public Product Pages
+# ============================================
+Allow: /exam-generator/$
+Allow: /mwalimu-ai/$
+
+# ============================================
+# SITEMAP LOCATION
+# ============================================
+Sitemap: https://eduscore.co.ke/sitemap.xml

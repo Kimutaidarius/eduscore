@@ -1,0 +1,3129 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+require_once 'includes/config.php';
+require_once 'includes/PermissionHelper.php';
+require_once 'includes/session_timeout.php'; 
+
+
+// Detect AJAX
+$isAjax = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']));
+
+// ✅ SINGLE SOURCE OF TRUTH
+if (
+    empty($_SESSION['authenticated']) ||
+    empty($_SESSION['school_id']) ||
+    empty($_SESSION['teacher_id'])
+) {
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Unauthorized session'
+        ]);
+        exit;
+    }
+
+    header('Location: login.php');
+    exit;
+}
+
+// Safe session values
+$school_id  = (int) $_SESSION['school_id'];
+$teacher_id = (int) $_SESSION['teacher_id'];
+
+// Initialize Permission Helper
+$permissionHelper = new PermissionHelper($db, $school_id, $teacher_id);
+
+// Check if user has permission to view grading page
+$permissionHelper->requireAnyPermission(['gradingView', 'gradingViewAll'], 'dashboard.php');
+
+// Determine which actions are allowed based on permissions
+$canCreate = $permissionHelper->hasPermission('gradingCreate');
+$canEdit = $permissionHelper->hasPermission('gradingEdit');
+$canDelete = $permissionHelper->hasPermission('gradingDelete');
+$canViewAll = $permissionHelper->hasPermission('gradingViewAll');
+$canUseDefaults = $permissionHelper->hasPermission('gradingUseDefaults');
+$isSuperAdmin = $permissionHelper->isSuperAdmin();
+$currentUserRole = $permissionHelper->getRole();
+
+// DB
+if (!isset($db)) {
+    require_once 'config/database.php';
+    $database = new Database();
+    $db = $database->getConnection();
+}
+
+// Get current academic level from session
+$current_level = $_SESSION['academic_level'] ?? 'Primary';
+$school_id = $_SESSION['school_id'];
+
+// Default CBE grading scale (System will use this by default)
+$default_grades = [
+    ['lower_limit' => 0, 'upper_limit' => 24, 'grade' => 'BE', 'points' => 1.00, 'remarks' => 'Below Expectation'],
+    ['lower_limit' => 25, 'upper_limit' => 49, 'grade' => 'AE', 'points' => 2.00, 'remarks' => 'Approaching Expectation'],
+    ['lower_limit' => 50, 'upper_limit' => 74, 'grade' => 'ME', 'points' => 3.00, 'remarks' => 'Meet Expectation'],
+    ['lower_limit' => 75, 'upper_limit' => 100, 'grade' => 'EE', 'points' => 4.00, 'remarks' => 'Exceeding Expectation']
+];
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    try {
+        switch ($_POST['action']) {
+            case 'add_grade':
+                // Check permission
+                if (!$canCreate) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to add custom grades']);
+                    break;
+                }
+                $response = addGrade($db, $school_id);
+                echo json_encode($response);
+                break;
+                
+            case 'update_grade':
+                // Check permission
+                if (!$canEdit) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to edit custom grades']);
+                    break;
+                }
+                $response = updateGrade($db, $school_id);
+                echo json_encode($response);
+                break;
+                
+            case 'delete_grade':
+                // Check permission
+                if (!$canDelete) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to delete custom grades']);
+                    break;
+                }
+                $response = deleteGrade($db, $school_id);
+                echo json_encode($response);
+                break;
+                
+            case 'get_grade':
+                // Anyone with view permissions can get grade details
+                if (!$permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view grades']);
+                    break;
+                }
+                $grade_id = intval($_POST['grade_id']);
+                $query = "SELECT * FROM tblgradingscale 
+                         WHERE id = :grade_id AND school_id = :school_id";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(":grade_id", $grade_id);
+                $stmt->bindParam(":school_id", $school_id);
+                $stmt->execute();
+                $grade = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($grade) {
+                    echo json_encode(['success' => true, 'grade' => $grade]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Grade not found']);
+                }
+                break;
+                
+            case 'get_classes_by_level':
+                // Anyone with view permissions can get classes
+                if (!$permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view classes']);
+                    break;
+                }
+                $academic_level = $_POST['academic_level'] ?? $current_level;
+                
+                $academic_level_map = [
+                    'Primary' => 'primary',
+                    'primary' => 'primary',
+                    'Junior Secondary' => 'junior_secondary',
+                    'junior_secondary' => 'junior_secondary',
+                    'Secondary' => 'secondary',
+                    'secondary' => 'secondary'
+                ];
+                
+                $db_level = $academic_level_map[$academic_level] ?? $academic_level;
+                
+                $query = "SELECT id, class_level FROM tblclasses 
+                         WHERE school_id = :school_id AND academic_level = :academic_level
+                         ORDER BY CASE 
+                            WHEN class_level LIKE 'Grade%' THEN CAST(SUBSTRING(class_level, 7) AS UNSIGNED)
+                            WHEN class_level LIKE 'Form%' THEN CAST(SUBSTRING(class_level, 6) AS UNSIGNED) + 8
+                            ELSE 999 END";
+                
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+                $stmt->bindParam(":academic_level", $db_level);
+                $stmt->execute();
+                $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'classes' => $classes]);
+                break;
+                
+            case 'get_streams_by_class':
+                // Anyone with view permissions can get streams
+                if (!$permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view streams']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                
+                $query = "SELECT id, stream_name FROM tblstreams 
+                         WHERE class_id = :class_id AND school_id = :school_id 
+                         ORDER BY stream_name";
+                
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(":class_id", $class_id);
+                $stmt->bindParam(":school_id", $school_id);
+                $stmt->execute();
+                $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'streams' => $streams]);
+                break;
+                
+            case 'get_grades_by_class_stream':
+                // Anyone with view permissions can view grades
+                if (!$permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view grades']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                $stream_id = isset($_POST['stream_id']) && $_POST['stream_id'] !== '' ? intval($_POST['stream_id']) : null;
+                
+                $query = "SELECT * FROM tblgradingscale 
+                         WHERE class_id = :class_id AND school_id = :school_id";
+                
+                $params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id !== null) {
+                    $query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                    $params[':stream_id'] = $stream_id;
+                } else {
+                    $query .= " AND stream_id IS NULL";
+                }
+                
+                $query .= " ORDER BY lower_limit ASC";
+                
+                $stmt = $db->prepare($query);
+                $stmt->execute($params);
+                $grades = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Return both custom grades and default grades for display
+                $all_grades = $grades;
+                
+                echo json_encode([
+                    'success' => true, 
+                    'custom_grades' => $grades,
+                    'default_grades' => $default_grades,
+                    'has_custom_grades' => !empty($grades)
+                ]);
+                break;
+                
+            case 'save_default_grades':
+                // Check permission
+                if (!$canCreate && !$canUseDefaults) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to save default grades']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                $stream_id = isset($_POST['stream_id']) && $_POST['stream_id'] !== '' ? intval($_POST['stream_id']) : null;
+                
+                // Use the system default grades
+                try {
+                    $db->beginTransaction();
+                    
+                    // Delete existing custom grades for this class/stream
+                    $delete_query = "DELETE FROM tblgradingscale 
+                                    WHERE class_id = :class_id AND school_id = :school_id";
+                    $params = [':class_id' => $class_id, ':school_id' => $school_id];
+                    
+                    if ($stream_id !== null) {
+                        $delete_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                        $params[':stream_id'] = $stream_id;
+                    } else {
+                        $delete_query .= " AND stream_id IS NULL";
+                    }
+                    
+                    $delete_stmt = $db->prepare($delete_query);
+                    $delete_stmt->execute($params);
+                    
+                    // Insert default grades as custom grades
+                    $insert_query = "INSERT INTO tblgradingscale 
+                                    (class_id, stream_id, lower_limit, upper_limit, grade, points, remarks, school_id) 
+                                    VALUES (:class_id, :stream_id, :lower_limit, :upper_limit, :grade, :points, :remarks, :school_id)";
+                    
+                    $insert_stmt = $db->prepare($insert_query);
+                    
+                    foreach ($default_grades as $grade) {
+                        $insert_stmt->bindParam(":class_id", $class_id);
+                        $insert_stmt->bindParam(":stream_id", $stream_id, $stream_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                        $insert_stmt->bindParam(":lower_limit", $grade['lower_limit']);
+                        $insert_stmt->bindParam(":upper_limit", $grade['upper_limit']);
+                        $insert_stmt->bindParam(":grade", $grade['grade']);
+                        $insert_stmt->bindParam(":points", $grade['points']);
+                        $insert_stmt->bindParam(":remarks", $grade['remarks']);
+                        $insert_stmt->bindParam(":school_id", $school_id);
+                        $insert_stmt->execute();
+                    }
+                    
+                    $db->commit();
+                    echo json_encode(['success' => true, 'message' => 'Default CBE grades saved as custom grades']);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    echo json_encode(['success' => false, 'message' => 'Failed to save grades: ' . $e->getMessage()]);
+                }
+                break;
+                
+            case 'delete_custom_grades':
+                // Check permission
+                if (!$canDelete) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to delete custom grades']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                $stream_id = isset($_POST['stream_id']) && $_POST['stream_id'] !== '' ? intval($_POST['stream_id']) : null;
+                
+                try {
+                    $db->beginTransaction();
+                    
+                    // Delete custom grades for this class/stream
+                    $delete_query = "DELETE FROM tblgradingscale 
+                                    WHERE class_id = :class_id AND school_id = :school_id";
+                    $params = [':class_id' => $class_id, ':school_id' => $school_id];
+                    
+                    if ($stream_id !== null) {
+                        $delete_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                        $params[':stream_id'] = $stream_id;
+                    } else {
+                        $delete_query .= " AND stream_id IS NULL";
+                    }
+                    
+                    $delete_stmt = $db->prepare($delete_query);
+                    $delete_stmt->execute($params);
+                    
+                    $db->commit();
+                    echo json_encode(['success' => true, 'message' => 'Custom grades deleted. System will use default CBE grades.']);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    echo json_encode(['success' => false, 'message' => 'Failed to delete grades: ' . $e->getMessage()]);
+                }
+                break;
+                
+            case 'copy_grades':
+                // Check permission
+                if (!$canCreate) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to copy grades']);
+                    break;
+                }
+                $from_class_id = intval($_POST['from_class_id']);
+                $from_stream_id = isset($_POST['from_stream_id']) && $_POST['from_stream_id'] !== '' ? intval($_POST['from_stream_id']) : null;
+                $to_class_id = intval($_POST['to_class_id']);
+                $to_stream_id = isset($_POST['to_stream_id']) && $_POST['to_stream_id'] !== '' ? intval($_POST['to_stream_id']) : null;
+                
+                try {
+                    $db->beginTransaction();
+                    
+                    // Delete existing custom grades in target class/stream
+                    $delete_query = "DELETE FROM tblgradingscale 
+                                    WHERE class_id = :class_id AND school_id = :school_id";
+                    $delete_params = [':class_id' => $to_class_id, ':school_id' => $school_id];
+                    
+                    if ($to_stream_id !== null) {
+                        $delete_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                        $delete_params[':stream_id'] = $to_stream_id;
+                    } else {
+                        $delete_query .= " AND stream_id IS NULL";
+                    }
+                    
+                    $delete_stmt = $db->prepare($delete_query);
+                    $delete_stmt->execute($delete_params);
+                    
+                    // Get custom grades from source class/stream
+                    $source_query = "SELECT * FROM tblgradingscale 
+                                    WHERE class_id = :class_id AND school_id = :school_id";
+                    $source_params = [':class_id' => $from_class_id, ':school_id' => $school_id];
+                    
+                    if ($from_stream_id !== null) {
+                        $source_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                        $source_params[':stream_id'] = $from_stream_id;
+                    } else {
+                        $source_query .= " AND stream_id IS NULL";
+                    }
+                    
+                    $source_stmt = $db->prepare($source_query);
+                    $source_stmt->execute($source_params);
+                    $source_grades = $source_stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    // Insert copied grades
+                    if (!empty($source_grades)) {
+                        $insert_query = "INSERT INTO tblgradingscale 
+                                        (class_id, stream_id, lower_limit, upper_limit, grade, points, remarks, school_id) 
+                                        VALUES (:class_id, :stream_id, :lower_limit, :upper_limit, :grade, :points, :remarks, :school_id)";
+                        
+                        $insert_stmt = $db->prepare($insert_query);
+                        
+                        foreach ($source_grades as $grade) {
+                            $insert_stmt->bindParam(":class_id", $to_class_id);
+                            $insert_stmt->bindParam(":stream_id", $to_stream_id, $to_stream_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                            $insert_stmt->bindParam(":lower_limit", $grade['lower_limit']);
+                            $insert_stmt->bindParam(":upper_limit", $grade['upper_limit']);
+                            $insert_stmt->bindParam(":grade", $grade['grade']);
+                            $insert_stmt->bindParam(":points", $grade['points']);
+                            $insert_stmt->bindParam(":remarks", $grade['remarks']);
+                            $insert_stmt->bindParam(":school_id", $school_id);
+                            $insert_stmt->execute();
+                        }
+                    }
+                    
+                    $db->commit();
+                    echo json_encode(['success' => true, 'message' => 'Custom grades copied successfully']);
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    echo json_encode(['success' => false, 'message' => 'Failed to copy grades: ' . $e->getMessage()]);
+                }
+                break;
+                
+            case 'get_custom_grades_count':
+                // Anyone with view permissions can get count
+                if (!$permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view grades count']);
+                    break;
+                }
+                $query = "SELECT COUNT(*) as total FROM tblgradingscale WHERE school_id = :school_id";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(":school_id", $school_id);
+                $stmt->execute();
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'total_custom_grades' => $result['total']]);
+                break;
+                
+            default:
+                echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        }
+    } catch (PDOException $e) {
+        error_log("Grading AJAX error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    }
+    exit;
+}
+
+// Function to add custom grade
+function addGrade($db, $school_id) {
+    $required_fields = ['class_id', 'lower_limit', 'upper_limit', 'grade', 'points', 'remarks'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            return ['success' => false, 'message' => "Required field '$field' is missing"];
+        }
+    }
+    
+    $class_id = intval($_POST['class_id']);
+    $lower_limit = intval($_POST['lower_limit']);
+    $upper_limit = intval($_POST['upper_limit']);
+    $grade = $_POST['grade'];
+    $points = floatval($_POST['points']);
+    $remarks = $_POST['remarks'];
+    $stream_id = !empty($_POST['stream_id']) ? intval($_POST['stream_id']) : null;
+    
+    // Validate limits
+    if ($lower_limit >= $upper_limit) {
+        return ['success' => false, 'message' => 'Lower limit must be less than upper limit'];
+    }
+    
+    if ($lower_limit < 0 || $lower_limit > 100) {
+        return ['success' => false, 'message' => 'Lower limit must be between 0 and 100'];
+    }
+    
+    if ($upper_limit < 0 || $upper_limit > 100) {
+        return ['success' => false, 'message' => 'Upper limit must be between 0 and 100'];
+    }
+    
+    // Check for overlapping ranges
+    $overlap_query = "SELECT * FROM tblgradingscale 
+                     WHERE class_id = :class_id AND school_id = :school_id 
+                     AND ((:lower_limit BETWEEN lower_limit AND upper_limit) 
+                     OR (:upper_limit BETWEEN lower_limit AND upper_limit)
+                     OR (lower_limit BETWEEN :lower_limit2 AND :upper_limit2))";
+    
+    $params = [
+        ':class_id' => $class_id,
+        ':school_id' => $school_id,
+        ':lower_limit' => $lower_limit,
+        ':upper_limit' => $upper_limit,
+        ':lower_limit2' => $lower_limit,
+        ':upper_limit2' => $upper_limit
+    ];
+    
+    if ($stream_id !== null) {
+        $overlap_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+        $params[':stream_id'] = $stream_id;
+    } else {
+        $overlap_query .= " AND stream_id IS NULL";
+    }
+    
+    $overlap_stmt = $db->prepare($overlap_query);
+    $overlap_stmt->execute($params);
+    
+    if ($overlap_stmt->rowCount() > 0) {
+        return ['success' => false, 'message' => 'Grade range overlaps with existing custom grade'];
+    }
+    
+    try {
+        $query = "INSERT INTO tblgradingscale 
+                 (class_id, stream_id, lower_limit, upper_limit, grade, points, remarks, school_id) 
+                 VALUES (:class_id, :stream_id, :lower_limit, :upper_limit, :grade, :points, :remarks, :school_id)";
+        
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":class_id", $class_id);
+        $stmt->bindParam(":stream_id", $stream_id, $stream_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $stmt->bindParam(":lower_limit", $lower_limit);
+        $stmt->bindParam(":upper_limit", $upper_limit);
+        $stmt->bindParam(":grade", $grade);
+        $stmt->bindParam(":points", $points);
+        $stmt->bindParam(":remarks", $remarks);
+        $stmt->bindParam(":school_id", $school_id);
+        
+        if ($stmt->execute()) {
+            $grade_id = $db->lastInsertId();
+            
+            $new_grade_query = "SELECT g.*, c.class_level, s.stream_name
+                               FROM tblgradingscale g
+                               JOIN tblclasses c ON g.class_id = c.id
+                               LEFT JOIN tblstreams s ON g.stream_id = s.id
+                               WHERE g.id = :grade_id AND g.school_id = :school_id";
+            
+            $new_grade_stmt = $db->prepare($new_grade_query);
+            $new_grade_stmt->bindParam(":grade_id", $grade_id);
+            $new_grade_stmt->bindParam(":school_id", $school_id);
+            $new_grade_stmt->execute();
+            $new_grade = $new_grade_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return [
+                'success' => true, 
+                'message' => 'Custom grade added successfully', 
+                'grade' => $new_grade
+            ];
+        } else {
+            return ['success' => false, 'message' => 'Failed to add custom grade'];
+        }
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+// Function to update custom grade
+function updateGrade($db, $school_id) {
+    $grade_id = intval($_POST['grade_id']);
+    
+    $check_query = "SELECT id FROM tblgradingscale WHERE id = :grade_id AND school_id = :school_id";
+    $check_stmt = $db->prepare($check_query);
+    $check_stmt->bindParam(":grade_id", $grade_id);
+    $check_stmt->bindParam(":school_id", $school_id);
+    $check_stmt->execute();
+    
+    if ($check_stmt->rowCount() === 0) {
+        return ['success' => false, 'message' => 'Custom grade not found'];
+    }
+    
+    $required_fields = ['class_id', 'lower_limit', 'upper_limit', 'grade', 'points', 'remarks'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            return ['success' => false, 'message' => "Required field '$field' is missing"];
+        }
+    }
+    
+    $class_id = intval($_POST['class_id']);
+    $lower_limit = intval($_POST['lower_limit']);
+    $upper_limit = intval($_POST['upper_limit']);
+    $grade = $_POST['grade'];
+    $points = floatval($_POST['points']);
+    $remarks = $_POST['remarks'];
+    $stream_id = !empty($_POST['stream_id']) ? intval($_POST['stream_id']) : null;
+    
+    // Validate limits
+    if ($lower_limit >= $upper_limit) {
+        return ['success' => false, 'message' => 'Lower limit must be less than upper limit'];
+    }
+    
+    if ($lower_limit < 0 || $lower_limit > 100) {
+        return ['success' => false, 'message' => 'Lower limit must be between 0 and 100'];
+    }
+    
+    if ($upper_limit < 0 || $upper_limit > 100) {
+        return ['success' => false, 'message' => 'Upper limit must be between 0 and 100'];
+    }
+    
+    // Check for overlapping ranges (excluding current grade)
+    $overlap_query = "SELECT * FROM tblgradingscale 
+                     WHERE class_id = :class_id AND school_id = :school_id AND id != :grade_id
+                     AND ((:lower_limit BETWEEN lower_limit AND upper_limit) 
+                     OR (:upper_limit BETWEEN lower_limit AND upper_limit)
+                     OR (lower_limit BETWEEN :lower_limit2 AND :upper_limit2))";
+    
+    $params = [
+        ':class_id' => $class_id,
+        ':school_id' => $school_id,
+        ':grade_id' => $grade_id,
+        ':lower_limit' => $lower_limit,
+        ':upper_limit' => $upper_limit,
+        ':lower_limit2' => $lower_limit,
+        ':upper_limit2' => $upper_limit
+    ];
+    
+    if ($stream_id !== null) {
+        $overlap_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+        $params[':stream_id'] = $stream_id;
+    } else {
+        $overlap_query .= " AND stream_id IS NULL";
+    }
+    
+    $overlap_stmt = $db->prepare($overlap_query);
+    $overlap_stmt->execute($params);
+    
+    if ($overlap_stmt->rowCount() > 0) {
+        return ['success' => false, 'message' => 'Grade range overlaps with existing custom grade'];
+    }
+    
+    try {
+        $query = "UPDATE tblgradingscale 
+                 SET class_id = :class_id, stream_id = :stream_id, 
+                     lower_limit = :lower_limit, upper_limit = :upper_limit,
+                     grade = :grade, points = :points, remarks = :remarks
+                 WHERE id = :grade_id AND school_id = :school_id";
+        
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":class_id", $class_id);
+        $stmt->bindParam(":stream_id", $stream_id, $stream_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $stmt->bindParam(":lower_limit", $lower_limit);
+        $stmt->bindParam(":upper_limit", $upper_limit);
+        $stmt->bindParam(":grade", $grade);
+        $stmt->bindParam(":points", $points);
+        $stmt->bindParam(":remarks", $remarks);
+        $stmt->bindParam(":grade_id", $grade_id);
+        $stmt->bindParam(":school_id", $school_id);
+        
+        if ($stmt->execute()) {
+            $updated_grade_query = "SELECT g.*, c.class_level, s.stream_name
+                                   FROM tblgradingscale g
+                                   JOIN tblclasses c ON g.class_id = c.id
+                                   LEFT JOIN tblstreams s ON g.stream_id = s.id
+                                   WHERE g.id = :grade_id AND g.school_id = :school_id";
+            
+            $updated_grade_stmt = $db->prepare($updated_grade_query);
+            $updated_grade_stmt->bindParam(":grade_id", $grade_id);
+            $updated_grade_stmt->bindParam(":school_id", $school_id);
+            $updated_grade_stmt->execute();
+            $updated_grade = $updated_grade_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return [
+                'success' => true, 
+                'message' => 'Custom grade updated successfully', 
+                'grade' => $updated_grade
+            ];
+        } else {
+            return ['success' => false, 'message' => 'Failed to update custom grade'];
+        }
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+// Function to delete custom grade
+function deleteGrade($db, $school_id) {
+    $grade_id = intval($_POST['grade_id']);
+    
+    $check_query = "SELECT id FROM tblgradingscale WHERE id = :grade_id AND school_id = :school_id";
+    $check_stmt = $db->prepare($check_query);
+    $check_stmt->bindParam(":grade_id", $grade_id);
+    $check_stmt->bindParam(":school_id", $school_id);
+    $check_stmt->execute();
+    
+    if ($check_stmt->rowCount() === 0) {
+        return ['success' => false, 'message' => 'Custom grade not found'];
+    }
+    
+    try {
+        $query = "DELETE FROM tblgradingscale WHERE id = :grade_id AND school_id = :school_id";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":grade_id", $grade_id);
+        $stmt->bindParam(":school_id", $school_id);
+        
+        if ($stmt->execute()) {
+            return ['success' => true, 'message' => 'Custom grade deleted successfully'];
+        } else {
+            return ['success' => false, 'message' => 'Failed to delete custom grade'];
+        }
+    } catch (Exception $e) {
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+// Fetch initial data for the page
+try {
+    // Check if grading scale table exists
+    $check_table_query = "SHOW TABLES LIKE 'tblgradingscale'";
+    $table_exists = $db->query($check_table_query)->rowCount() > 0;
+    
+    if (!$table_exists) {
+        $create_grading_table = "CREATE TABLE tblgradingscale (
+            id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            class_id INT(11) NOT NULL,
+            stream_id INT(11) DEFAULT NULL,
+            lower_limit INT(3) NOT NULL,
+            upper_limit INT(3) NOT NULL,
+            grade VARCHAR(10) NOT NULL,
+            points DECIMAL(3,2) NOT NULL,
+            remarks VARCHAR(255) NOT NULL,
+            school_id INT(11) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (class_id) REFERENCES tblclasses(id),
+            FOREIGN KEY (stream_id) REFERENCES tblstreams(id),
+            FOREIGN KEY (school_id) REFERENCES tblschoolinfo(id),
+            UNIQUE KEY unique_grade_range (class_id, stream_id, lower_limit, upper_limit, school_id)
+        )";
+        $db->exec($create_grading_table);
+    }
+    
+    // Fetch classes for filters
+    $classes_query = "SELECT id, class_level, academic_level FROM tblclasses 
+                     WHERE school_id = :school_id 
+                     ORDER BY academic_level, 
+                     CASE 
+                        WHEN class_level LIKE 'Grade%' THEN CAST(SUBSTRING(class_level, 7) AS UNSIGNED)
+                        WHEN class_level LIKE 'Form%' THEN CAST(SUBSTRING(class_level, 6) AS UNSIGNED) + 8
+                        ELSE 999 
+                     END";
+    $classes_stmt = $db->prepare($classes_query);
+    $classes_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+    $classes_stmt->execute();
+    $all_classes = $classes_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group classes by academic level
+    $grouped_classes = [];
+    foreach ($all_classes as $class) {
+        $level = $class['academic_level'];
+        if (!isset($grouped_classes[$level])) {
+            $grouped_classes[$level] = [];
+        }
+        $grouped_classes[$level][] = [
+            'id' => $class['id'],
+            'class_name' => $class['class_level'],
+            'class_level' => $class['class_level']
+        ];
+    }
+    
+    // Fetch streams
+    $streams_query = "SELECT id, stream_name, class_id FROM tblstreams WHERE school_id = :school_id ORDER BY stream_name";
+    $streams_stmt = $db->prepare($streams_query);
+    $streams_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+    $streams_stmt->execute();
+    $streams = $streams_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Fetch only custom grades (not default ones)
+    $custom_grades_query = "SELECT g.*, c.class_level, s.stream_name
+                    FROM tblgradingscale g
+                    JOIN tblclasses c ON g.class_id = c.id
+                    LEFT JOIN tblstreams s ON g.stream_id = s.id
+                    WHERE g.school_id = :school_id
+                    ORDER BY c.class_level, g.lower_limit";
+    
+    $custom_grades_stmt = $db->prepare($custom_grades_query);
+    $custom_grades_stmt->bindParam(":school_id", $school_id);
+    $custom_grades_stmt->execute();
+    $custom_grades = $custom_grades_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $total_custom_grades = count($custom_grades);
+    
+} catch (PDOException $e) {
+    error_log("Grading page data fetch error: " . $e->getMessage());
+    $grouped_classes = [];
+    $streams = [];
+    $custom_grades = [];
+    $total_custom_grades = 0;
+}
+?>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduScore - Grading Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="apple-touch-icon" href="images/logo.png">
+    <link rel="stylesheet" href="assets/banner/banner.css">
+    <style>
+        :root {
+            --primary-blue: #1e3a8a;
+            --secondary-blue: #2563eb;
+            --light-blue: #dbeafe;
+            --accent-yellow: #fbbf24;
+            --dark-blue: #1e3a8a;
+            --success-green: #10b981;
+            --warning-orange: #f59e0b;
+            --error-red: #ef4444;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            padding: 100px 2rem 2rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+                padding: 100px 1rem 1rem;
+            }
+        }
+
+        /* Page Header */
+        .page-header {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary-blue);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-yellow), transparent);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .grading-page-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .grading-page-title i {
+            color: var(--primary-blue);
+        }
+
+        .page-description {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        /* Role Badge */
+        .role-badge {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            box-shadow: var(--shadow);
+        }
+
+        .role-badge i {
+            font-size: 0.9rem;
+        }
+
+        /* Permission Denied */
+        .permission-denied {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--error-red);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .permission-denied i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .permission-denied h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .permission-denied p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Info Banner */
+        .info-banner {
+            background: var(--light-blue);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--secondary-blue);
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .info-banner i {
+            color: var(--secondary-blue);
+            font-size: 1.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .info-content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-content p {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--transition);
+            border-top: 3px solid var(--primary-blue);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.total { background: var(--light-blue); color: var(--primary-blue); }
+        .stat-icon.custom { background: #d1fae5; color: var(--success-green); }
+        .stat-icon.default { background: #fef3c7; color: var(--warning-orange); }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+            background: var(--bg-white);
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .grading-search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+            min-width: 250px;
+        }
+
+        .grading-search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            background: var(--bg-white);
+        }
+
+        .grading-search-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .grading-search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--secondary-blue);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-green), #059669);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-orange), #d97706);
+            color: white;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-red), #b91c1c);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+        }
+
+        /* Filter Controls */
+        .filter-section {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-label i {
+            color: var(--primary-blue);
+            font-size: 1rem;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            background: var(--bg-white);
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .filter-select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filter-select option:first-child {
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        /* Default Grades Preview - IMPROVED */
+        .default-grades-preview {
+            background: #fefce8;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #fbbf24;
+            overflow: hidden;
+        }
+
+        .preview-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .preview-title i {
+            color: #f59e0b;
+        }
+
+        .default-grades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .default-grade-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #fde68a;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .default-grade-range {
+            font-weight: 600;
+            color: var(--text-dark);
+            min-width: 80px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .default-grade-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .default-grade-points {
+            font-weight: 600;
+            color: var(--primary-blue);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .default-grade-remarks {
+            color: var(--text-light);
+            font-size: 0.85rem;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 480px) {
+            .default-grades-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            
+            .default-grade-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                padding: 0.75rem;
+            }
+            
+            .default-grade-range {
+                min-width: auto;
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .default-grade-remarks {
+                white-space: normal;
+                font-size: 0.8rem;
+                line-height: 1.3;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .default-grades-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 0.75rem;
+            }
+            
+            .default-grade-item {
+                padding: 0.75rem;
+                gap: 0.5rem;
+            }
+            
+            .default-grade-remarks {
+                font-size: 0.8rem;
+            }
+        }
+
+        .modal .default-grades-grid {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .modal .default-grades-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal .default-grades-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .modal .default-grades-grid::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .modal .default-grades-grid::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Grades Table */
+        .grades-table-container {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .grades-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        .grades-table th {
+            background: var(--primary-blue);
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            color: white;
+            border-bottom: 2px solid var(--accent-yellow);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .grades-table th i {
+            margin-right: 0.5rem;
+        }
+
+        .grades-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .grades-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .grades-table tr:hover {
+            background: var(--bg-light);
+        }
+
+        /* Grade Badge */
+        .grade-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .grade-BE { background: #fca5a5; color: #7f1d1d; }
+        .grade-AE { background: #fed7aa; color: #92400e; }
+        .grade-ME { background: #fef08a; color: #854d0e; }
+        .grade-EE { background: #bbf7d0; color: #166534; }
+        .grade-A { background: #d1fae5; color: #065f46; }
+        .grade-B { background: #dbeafe; color: #1e40af; }
+        .grade-C { background: #fef3c7; color: #92400e; }
+        .grade-D { background: #fde68a; color: #92400e; }
+        .grade-F { background: #fca5a5; color: #7f1d1d; }
+
+        /* Points Circle */
+        .points-circle {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: var(--shadow);
+        }
+
+        .rubric-points {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn-small {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .action-btn-small:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .edit-btn {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+        }
+
+        .edit-btn:hover:not(:disabled) {
+            background: var(--secondary-blue);
+            color: white;
+        }
+
+        .delete-btn {
+            background: #fef2f2;
+            color: var(--error-red);
+        }
+
+        .delete-btn:hover:not(:disabled) {
+            background: var(--error-red);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-light);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+            color: var(--primary-blue);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .empty-state p {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+            border-top: 4px solid var(--accent-yellow);
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .close-modal {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            font-size: 1.25rem;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: var(--transition);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .close-modal:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-label.required::after {
+            content: '*';
+            color: var(--error-red);
+            margin-left: 0.25rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            background: var(--bg-white);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-control:disabled {
+            background: var(--bg-light);
+            cursor: not-allowed;
+        }
+
+        .form-control.form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.75rem center;
+            background-repeat: no-repeat;
+            background-size: 16px 12px;
+            padding-right: 2.5rem;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        /* Delete Modal */
+        .delete-modal .modal-header {
+            background: linear-gradient(135deg, var(--error-red), #b91c1c);
+        }
+
+        .delete-warning {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--error-red);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error-red), #b91c1c);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            z-index: 3000;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-lg);
+            border-left: 4px solid var(--success-green);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideInRight 0.3s ease;
+        }
+
+        .toast.error {
+            border-left-color: var(--error-red);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning-orange);
+        }
+
+        .toast.info {
+            border-left-color: var(--secondary-blue);
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .toast.success .toast-icon {
+            background: var(--success-green);
+        }
+
+        .toast.error .toast-icon {
+            background: var(--error-red);
+        }
+
+        .toast.warning .toast-icon {
+            background: var(--warning-orange);
+        }
+
+        .toast.info .toast-icon {
+            background: var(--secondary-blue);
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-message {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        /* Loading Spinner */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .modern-spinner {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 2rem;
+        }
+
+        .spinner-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .spinner-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            animation: rotate 2s linear infinite;
+        }
+
+        .spinner-ring:nth-child(1) {
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-top-color: var(--primary-blue);
+            animation-delay: 0s;
+            animation-duration: 2s;
+        }
+
+        .spinner-ring:nth-child(2) {
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            border-top-color: var(--secondary-blue);
+            animation-delay: 0.1s;
+            animation-duration: 1.8s;
+        }
+
+        .spinner-ring:nth-child(3) {
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border-top-color: var(--accent-yellow);
+            animation-delay: 0.2s;
+            animation-duration: 1.6s;
+        }
+
+        .spinner-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.2);
+        }
+
+        .loading-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+        }
+
+        .loading-text {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 100px 1rem 1rem;
+            }
+
+            .page-header {
+                padding: 1.5rem;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+
+            .modal {
+                max-width: 95%;
+                margin: 1rem;
+            }
+
+            .modal-header,
+            .modal-body,
+            .modal-footer {
+                padding: 1.25rem;
+            }
+
+            .toast-container {
+                right: 1rem;
+                left: 1rem;
+                max-width: none;
+            }
+        }
+        
+        .stat-value .fa-spinner {
+            font-size: 0.8em;
+            color: var(--text-light);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <?php 
+    if (!isset($school)) {
+        $stmt = $db->prepare("SELECT * FROM tblschoolinfo WHERE id = :school_id");
+        $stmt->bindParam(":school_id", $_SESSION['school_id'], PDO::PARAM_INT);
+        $stmt->execute();
+        $school = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    include 'trial_banner.php'; 
+    ?>
+    
+    <!-- Include Header -->
+    <?php include 'includes/header.php'; ?>
+
+    <!-- Include Sidebar -->
+    <?php include 'includes/sidebar.php'; ?>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="grading-page-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Grading Management
+                </h1>
+                <span class="role-badge">
+                    <i class="fas fa-<?php echo $isSuperAdmin ? 'crown' : 'user-tag'; ?>"></i>
+                    <?php echo htmlspecialchars($currentUserRole ?? 'User'); ?>
+                </span>
+            </div>
+            <p class="page-description">Configure custom grading scales for classes and streams</p>
+        </div>
+
+        <?php if (!$permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])): ?>
+            <!-- Permission Denied -->
+            <div class="permission-denied">
+                <i class="fas fa-lock"></i>
+                <h3>Access Denied</h3>
+                <p>You do not have permission to view grading management.</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Please contact your system administrator if you need access.</p>
+            </div>
+        <?php else: ?>
+
+        <!-- Info Banner -->
+        <div class="info-banner">
+            <i class="fas fa-info-circle"></i>
+            <div class="info-content">
+                <h4>How Grading Works</h4>
+                <p>
+                    • The system automatically uses <strong>default CBE grades</strong> (BE, AE, ME, EE) for all classes<br>
+                    • You only need to add custom grades when you want to override the defaults<br>
+                    • Custom grades apply only to the specific class/stream you create them for
+                </p>
+            </div>
+        </div>
+
+        <!-- Default Grades Preview -->
+        <div class="default-grades-preview">
+            <h4 class="preview-title">
+                <i class="fas fa-star"></i>
+                Default CBE Grading Scale (Used by System)
+            </h4>
+            <div class="default-grades-grid">
+                <?php foreach ($default_grades as $grade):   $gradeClass = 'grade-' . $grade['grade']; ?>
+                    <div class="default-grade-item">
+                        <div class="default-grade-range"><?php echo $grade['lower_limit']; ?>-<?php echo $grade['upper_limit']; ?>%</div>
+                        <span class="grade-badge <?php echo $gradeClass; ?>"><?php echo $grade['grade']; ?></span>
+                        <div class="default-grade-points"><?php echo $grade['points']; ?> pts</div>
+                        <div class="default-grade-remarks"><?php echo $grade['remarks']; ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-container" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalClasses"><?php echo count($all_classes); ?></div>
+                    <div class="stat-label">Total Classes</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon custom">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value" id="customGradesCount"><?php echo $total_custom_grades; ?></div>
+                    <div class="stat-label">Custom Grades</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon default">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">Default CBE Grades</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <div class="grading-search-box">
+                <i class="fas fa-search grading-search-icon"></i>
+                <input type="text" class="grading-search-input" id="searchInput" placeholder="Search custom grades...">
+            </div>
+            <div class="action-buttons">
+                <?php if ($canCreate): ?>
+                    <button class="btn btn-primary" id="addGradeBtn">
+                        <i class="fas fa-plus"></i>
+                        Add Custom Grade
+                    </button>
+                
+                <?php if ($permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])): ?>
+                    <button class="btn btn-secondary" id="viewGradesBtn">
+                        <i class="fas fa-eye"></i>
+                        View Grades
+                    </button>
+                
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        Select Class
+                    </label>
+                    <select id="selectClass" class="filter-select">
+                        <option value="">-- Select Class --</option>
+                        <?php foreach ($grouped_classes as $level => $classes):   
+                            $level_label = ucwords(str_replace('_', ' ', $level));
+                            if ($level === 'primary') $level_label = 'Primary';
+                            if ($level === 'junior_secondary') $level_label = 'Junior Secondary';
+                            if ($level === 'secondary') $level_label = 'Secondary';
+                            ?>
+                            <optgroup label="<?php echo $level_label; ?>">
+                                <?php foreach ($classes as $class): ?>
+                                    <option value="<?php echo $class['id']; ?>">
+                                        <?php echo htmlspecialchars($class['class_level']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-stream"></i>
+                        Select Stream
+                    </label>
+                    <select id="selectStream" class="filter-select" disabled>
+                        <option value="">-- Select Class First --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="action-buttons" style="margin-top: 1rem;">
+                <?php if ($permissionHelper->hasAnyPermission(['gradingView', 'gradingViewAll'])): ?>
+                    <button id="loadGradesBtn" class="btn btn-primary">
+                        <i class="fas fa-sync-alt"></i> Check for Custom Grades
+                    </button>
+                
+                <?php if ($canCreate || $canUseDefaults): ?>
+                    <button id="useDefaultsBtn" class="btn btn-success">
+                        <i class="fas fa-check"></i> Use Default CBE Grades
+                    </button>
+                
+                <?php if ($canDelete): ?>
+                    <button id="deleteCustomBtn" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete Custom Grades
+                    </button>
+                
+            </div>
+        </div>
+
+        <!-- Grades Table (Only shows custom grades) -->
+        <div class="grades-table-container">
+            <div class="table-responsive">
+                <table class="grades-table" id="gradesTable">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-graduation-cap"></i> Class</th>
+                            <th><i class="fas fa-stream"></i> Stream</th>
+                            <th><i class="fas fa-arrow-down"></i> Lower Limit</th>
+                            <th><i class="fas fa-arrow-up"></i> Upper Limit</th>
+                            <th><i class="fas fa-tag"></i> Grade</th>
+                            <th><i class="fas fa-star"></i> Points</th>
+                            <th><i class="fas fa-comment"></i> Remarks</th>
+                            <th><i class="fas fa-cogs"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesTableBody">
+                        <?php if (!empty($custom_grades)):   foreach ($custom_grades as $grade):   $gradeClass = 'grade-' . $grade['grade']; ?>
+                                <tr data-grade-id="<?php echo $grade['id']; ?>">
+                                    <td><?php echo htmlspecialchars($grade['class_level']); ?></td>
+                                    <td><?php echo htmlspecialchars($grade['stream_name'] ?? 'All Streams'); ?></td>
+                                    <td><strong><?php echo htmlspecialchars($grade['lower_limit']); ?>%</strong></td>
+                                    <td><strong><?php echo htmlspecialchars($grade['upper_limit']); ?>%</strong></td>
+                                    <td>
+                                        <span class="grade-badge <?php echo $gradeClass; ?>">
+                                            <?php echo htmlspecialchars($grade['grade']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="rubric-points">
+                                            <div class="points-circle"><?php echo htmlspecialchars($grade['points']); ?></div>
+                                            <span>points</span>
+                                        </div>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($grade['remarks']); ?></td>
+                                    <td>
+                                        <div class="actions">
+                                            <?php if ($canEdit): ?>
+                                                <button class="action-btn-small edit-btn" onclick="editGrade(<?php echo $grade['id']; ?>)" title="Edit Custom Grade">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            
+                                            <?php if ($canDelete): ?>
+                                                <button class="action-btn-small delete-btn" onclick="showDeleteModal(<?php echo $grade['id']; ?>)" title="Delete Custom Grade">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach;   else: ?>
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <i class="fas fa-chart-bar"></i>
+                                        <h3>No Custom Grades Found</h3>
+                                        <p>All classes are using the default CBE grading scale.</p>
+                                        <p style="font-size: 0.9rem; color: var(--text-light); margin-top: 0.5rem;">
+                                            <i class="fas fa-info-circle"></i> The system automatically uses default grades (BE, AE, ME, EE)
+                                        </p>
+                                        <?php if ($canCreate): ?>
+                                            <button class="btn btn-primary" onclick="openAddGradeModal()" style="margin-top: 1.5rem;">
+                                                <i class="fas fa-plus"></i> Add Custom Grade Scale
+                                            </button>
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div>
+
+    <?php if ($canCreate || $canEdit): ?>
+    <!-- Add/Edit Grade Modal -->
+    <div class="modal-overlay" id="gradeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-chart-bar"></i>
+                    <span id="modalTitle">Add Custom Grade</span>
+                </h3>
+                <button class="close-modal" id="closeModal" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="gradeForm">
+                <div class="modal-body">
+                    <input type="hidden" id="gradeId" name="grade_id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required" for="classSelect">Class</label>
+                            <select class="form-control form-select" id="classSelectModal" name="class_id" required <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                                <option value="">-- Select Class --</option>
+                                <?php foreach ($grouped_classes as $level => $classes):   
+                                    $level_label = ucwords(str_replace('_', ' ', $level));
+                                    if ($level === 'primary') $level_label = 'Primary';
+                                    if ($level === 'junior_secondary') $level_label = 'Junior Secondary';
+                                    if ($level === 'secondary') $level_label = 'Secondary';
+                                    ?>
+                                    <optgroup label="<?php echo $level_label; ?>">
+                                        <?php foreach ($classes as $class): ?>
+                                            <option value="<?php echo $class['id']; ?>">
+                                                <?php echo htmlspecialchars($class['class_level']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </optgroup>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="streamSelect">Stream</label>
+                            <select class="form-control form-select" id="streamSelectModal" name="stream_id" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                                <option value="">-- Select Stream (Optional) --</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required" for="lowerLimit">Lower Limit (%)</label>
+                            <input type="number" 
+                                   id="lowerLimit" 
+                                   name="lower_limit" 
+                                   class="form-control" 
+                                   min="0" 
+                                   max="100" 
+                                   placeholder="0" 
+                                   required
+                                   <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required" for="upperLimit">Upper Limit (%)</label>
+                            <input type="number" 
+                                   id="upperLimit" 
+                                   name="upper_limit" 
+                                   class="form-control" 
+                                   min="0" 
+                                   max="100" 
+                                   placeholder="100" 
+                                   required
+                                   <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required" for="grade">Grade</label>
+                            <input type="text" 
+                                   id="grade" 
+                                   name="grade" 
+                                   class="form-control" 
+                                   placeholder="A, BE, EE, etc." 
+                                   maxlength="10" 
+                                   required
+                                   <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required" for="points">Points</label>
+                            <input type="number" 
+                                   id="points" 
+                                   name="points" 
+                                   class="form-control" 
+                                   step="0.1" 
+                                   min="0" 
+                                   max="4" 
+                                   placeholder="4.0" 
+                                   required
+                                   <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label required" for="remarks">Remarks</label>
+                        <input type="text" 
+                               id="remarks" 
+                               name="remarks" 
+                               class="form-control" 
+                               placeholder="Excellent, Below Expectation, etc." 
+                               required
+                               <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="saveGradeBtn" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        <i class="fas fa-save"></i>
+                        <span id="saveBtnText">Save Custom Grade</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+
+    <?php if ($canDelete): ?>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal delete-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Delete Custom Grade
+                </h3>
+                <button class="close-modal" id="closeDeleteModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this custom grade?</p>
+                <div class="delete-warning">
+                    <i class="fas fa-info-circle"></i>
+                    After deletion, the system will use default CBE grades for this class/stream.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fas fa-trash"></i> Delete Custom Grade
+                </button>
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- View Grades Modal -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-eye"></i>
+                    View Grades for <span id="viewClassTitle"></span>
+                </h3>
+                <button class="close-modal" id="closeViewModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Default CBE Grades (System Default)</label>
+                    <div id="defaultGradesView" class="default-grades-grid" style="margin-top: 1rem;">
+                        <!-- Default grades will be shown here -->
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 2rem;">
+                    <label class="form-label">Custom Grades (Override)</label>
+                    <div id="customGradesView" style="margin-top: 1rem;">
+                        <!-- Custom grades will be shown here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="closeViewBtn">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Global variables
+    let editingGradeId = null;
+    let gradeToDeleteId = null;
+    let isSubmitting = false;
+
+    // Permissions from PHP
+    const PERMISSIONS = {
+        canCreate: <?php echo $canCreate ? 'true' : 'false'; ?>,
+        canEdit: <?php echo $canEdit ? 'true' : 'false'; ?>,
+        canDelete: <?php echo $canDelete ? 'true' : 'false'; ?>,
+        canViewAll: <?php echo $canViewAll ? 'true' : 'false'; ?>,
+        canUseDefaults: <?php echo $canUseDefaults ? 'true' : 'false'; ?>,
+        isSuperAdmin: <?php echo $isSuperAdmin ? 'true' : 'false'; ?>
+    };
+
+    // DOM Elements
+    const addGradeBtn = document.getElementById('addGradeBtn');
+    const viewGradesBtn = document.getElementById('viewGradesBtn');
+    const loadGradesBtn = document.getElementById('loadGradesBtn');
+    const useDefaultsBtn = document.getElementById('useDefaultsBtn');
+    const deleteCustomBtn = document.getElementById('deleteCustomBtn');
+    const gradeModal = document.getElementById('gradeModal');
+    const deleteModal = document.getElementById('deleteModal');
+    const viewModal = document.getElementById('viewModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const saveGradeBtn = document.getElementById('saveGradeBtn');
+    const saveBtnText = document.getElementById('saveBtnText');
+    const searchInput = document.getElementById('searchInput');
+    const gradesTableBody = document.getElementById('gradesTableBody');
+    const toastContainer = document.getElementById('toastContainer');
+    const selectClass = document.getElementById('selectClass');
+    const selectStream = document.getElementById('selectStream');
+    const gradeForm = document.getElementById('gradeForm');
+    const closeDeleteModal = document.getElementById('closeDeleteModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const closeViewModal = document.getElementById('closeViewModal');
+    const closeViewBtn = document.getElementById('closeViewBtn');
+    const defaultGradesView = document.getElementById('defaultGradesView');
+    const customGradesView = document.getElementById('customGradesView');
+    const viewClassTitle = document.getElementById('viewClassTitle');
+
+    // Default grades (from PHP) - with proper error handling
+    let defaultGrades = [];
+    try {
+        // Use JSON.parse with proper escaping
+        const defaultGradesJson = '<?php 
+            echo addslashes(json_encode($default_grades, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP));
+        ?>';
+        defaultGrades = JSON.parse(defaultGradesJson);
+    } catch (e) {
+        console.error('Error parsing default grades:', e);
+        // Fallback to hardcoded defaults
+        defaultGrades = [
+            {lower_limit: 0, upper_limit: 24, grade: 'BE', points: 1.00, remarks: 'Below Expectation'},
+            {lower_limit: 25, upper_limit: 49, grade: 'AE', points: 2.00, remarks: 'Approaching Expectation'},
+            {lower_limit: 50, upper_limit: 74, grade: 'ME', points: 3.00, remarks: 'Meet Expectation'},
+            {lower_limit: 75, upper_limit: 100, grade: 'EE', points: 4.00, remarks: 'Exceeding Expectation'}
+        ];
+    }
+
+    // Toast Notification Function
+    function showToast(title, message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = 'check';
+        if (type === 'error') icon = 'exclamation-triangle';
+        if (type === 'warning') icon = 'exclamation-circle';
+        if (type === 'info') icon = 'info-circle';
+        
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <i class="fas fa-${icon}"></i>
+            </div>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    }
+
+    // Check permission function
+    function checkPermission(action) {
+        if (!PERMISSIONS[action] && !PERMISSIONS.isSuperAdmin) {
+            showToast('Access Denied', 'You do not have permission to perform this action', 'error');
+            return false;
+        }
+        return true;
+    }
+
+    // Loading States
+    function showLoading(button, text) {
+        const originalHTML = button.innerHTML;
+        button.dataset.originalHTML = originalHTML;
+        button.innerHTML = `
+            <div style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; margin-right: 8px;"></div>
+            ${text}
+        `;
+        button.disabled = true;
+    }
+    
+    function hideLoading(button) {
+        if (button.dataset.originalHTML) {
+            button.innerHTML = button.dataset.originalHTML;
+        }
+        button.disabled = false;
+    }
+
+    // Add CSS for spinner animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Load streams for a class
+    function loadStreams(classId, targetElement, selectedStreamId = null) {
+        if (!targetElement || !classId) {
+            if (targetElement) {
+                targetElement.innerHTML = '<option value="">-- Select Class First --</option>';
+                targetElement.disabled = true;
+            }
+            return;
+        }
+        
+        targetElement.innerHTML = '<option value="">-- Loading streams... --</option>';
+        targetElement.disabled = false;
+        
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=get_streams_by_class&class_id=${classId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.streams && data.streams.length > 0) {
+                let options = '<option value="">-- All Streams --</option>';
+                data.streams.forEach(stream => {
+                    const selected = selectedStreamId && stream.id == selectedStreamId ? 'selected' : '';
+                    options += `<option value="${stream.id}" ${selected}>${stream.stream_name}</option>`;
+                });
+                targetElement.innerHTML = options;
+            } else {
+                targetElement.innerHTML = '<option value="">-- No streams available --</option>';
+            }
+        })
+        .catch(error => {
+            targetElement.innerHTML = '<option value="">-- Error loading streams --</option>';
+            showToast('Error', 'Failed to load streams', 'error');
+        });
+    }
+
+    // Check for custom grades
+    function checkCustomGrades() {
+        const classId = selectClass.value;
+        const streamId = selectStream.value || '';
+        
+        if (!classId) {
+            showToast('Warning', 'Please select a class first', 'warning');
+            return;
+        }
+        
+        showLoading(loadGradesBtn, 'Checking...');
+        
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=get_grades_by_class_stream&class_id=${classId}&stream_id=${streamId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.has_custom_grades) {
+                    showToast('Info', 'This class has custom grades. System will use these instead of defaults.', 'info');
+                    renderCustomGradesTable(data.custom_grades);
+                } else {
+                    showToast('Info', 'No custom grades found. System is using default CBE grades.', 'info');
+                }
+            } else {
+                showToast('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to check grades', 'error');
+        })
+        .finally(() => {
+            hideLoading(loadGradesBtn);
+        });
+    }
+
+    // Render custom grades table
+    function renderCustomGradesTable(grades) {
+        if (!grades || grades.length === 0) {
+            gradesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <i class="fas fa-chart-bar"></i>
+                            <h3>No Custom Grades Found</h3>
+                            <p>All classes are using the default CBE grading scale.</p>
+                            <p style="font-size: 0.9rem; color: var(--text-light); margin-top: 0.5rem;">
+                                <i class="fas fa-info-circle"></i> The system automatically uses default grades (BE, AE, ME, EE)
+                            </p>
+                            ${PERMISSIONS.canCreate ? `
+                                <button class="btn btn-primary" onclick="openAddGradeModal()" style="margin-top: 1.5rem;">
+                                    <i class="fas fa-plus"></i> Add Custom Grade Scale
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        let html = '';
+        grades.forEach(grade => {
+            const gradeClass = `grade-${grade.grade}`;
+            
+            html += `
+                <tr data-grade-id="${grade.id}">
+                    <td>${escapeHtml(grade.class_level || 'N/A')}</td>
+                    <td>${escapeHtml(grade.stream_name || 'All Streams')}</td>
+                    <td><strong>${grade.lower_limit}%</strong></td>
+                    <td><strong>${grade.upper_limit}%</strong></td>
+                    <td>
+                        <span class="grade-badge ${gradeClass}">
+                            ${grade.grade}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="rubric-points">
+                            <div class="points-circle">${grade.points}</div>
+                            <span>points</span>
+                        </div>
+                    </td>
+                    <td>${escapeHtml(grade.remarks || '')}</td>
+                    <td>
+                        <div class="actions">
+                            ${PERMISSIONS.canEdit ? `
+                                <button class="action-btn-small edit-btn" onclick="editGrade(${grade.id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
+                            ${PERMISSIONS.canDelete ? `
+                                <button class="action-btn-small delete-btn" onclick="showDeleteModal(${grade.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        gradesTableBody.innerHTML = html;
+    }
+
+    // View grades for selected class
+    function viewGrades() {
+        const classId = selectClass.value;
+        const streamId = selectStream.value || '';
+        
+        if (!classId) {
+            showToast('Warning', 'Please select a class first', 'warning');
+            return;
+        }
+        
+        // Get class name for title
+        const className = selectClass.options[selectClass.selectedIndex].text;
+        const streamName = streamId ? selectStream.options[selectStream.selectedIndex].text : 'All Streams';
+        
+        viewClassTitle.textContent = `${className} (${streamName})`;
+        
+        // Show default grades
+        let defaultHtml = '';
+        defaultGrades.forEach(grade => {
+            const gradeClass = `grade-${grade.grade}`;
+            defaultHtml += `
+                <div class="default-grade-item">
+                    <div class="default-grade-range">${grade.lower_limit}-${grade.upper_limit}%</div>
+                    <span class="grade-badge ${gradeClass}">${grade.grade}</span>
+                    <div class="default-grade-points">${grade.points} pts</div>
+                    <div class="default-grade-remarks">${grade.remarks}</div>
+                </div>
+            `;
+        });
+        defaultGradesView.innerHTML = defaultHtml;
+        
+        // Load custom grades
+        customGradesView.innerHTML = '<p style="color: var(--text-light);"><i class="fas fa-spinner fa-spin"></i> Loading custom grades...</p>';
+        
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=get_grades_by_class_stream&class_id=${classId}&stream_id=${streamId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.has_custom_grades) {
+                    let customHtml = '<div class="default-grades-grid">';
+                    data.custom_grades.forEach(grade => {
+                        const gradeClass = `grade-${grade.grade}`;
+                        customHtml += `
+                            <div class="default-grade-item" style="border-color: var(--primary-blue);">
+                                <div class="default-grade-range">${grade.lower_limit}-${grade.upper_limit}%</div>
+                                <span class="grade-badge ${gradeClass}">${grade.grade}</span>
+                                <div class="default-grade-points">${grade.points} pts</div>
+                                <div class="default-grade-remarks">${grade.remarks}</div>
+                            </div>
+                        `;
+                    });
+                    customHtml += '</div>';
+                    customHtml += '<p style="margin-top: 1rem; font-size: 0.9rem; color: var(--primary-blue);"><i class="fas fa-info-circle"></i> Custom grades override default CBE grades</p>';
+                    customGradesView.innerHTML = customHtml;
+                } else {
+                    customGradesView.innerHTML = '<p style="color: var(--text-light);"><i class="fas fa-info-circle"></i> No custom grades. System is using default CBE grades.</p>';
+                }
+            } else {
+                customGradesView.innerHTML = '<p style="color: var(--error-red);"><i class="fas fa-exclamation-circle"></i> Failed to load custom grades</p>';
+            }
+        })
+        .catch(error => {
+            customGradesView.innerHTML = '<p style="color: var(--error-red);"><i class="fas fa-exclamation-circle"></i> Failed to load custom grades</p>';
+        });
+        
+        viewModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Modal Functions
+    function openAddGradeModal() {
+        if (!checkPermission('canCreate')) return;
+        
+        document.getElementById('modalTitle').textContent = 'Add Custom Grade';
+        saveBtnText.textContent = 'Save Custom Grade';
+        
+        gradeForm.reset();
+        document.getElementById('gradeId').value = '';
+        editingGradeId = null;
+        
+        // Reset the class select to default option
+        document.getElementById('classSelectModal').selectedIndex = 0;
+        
+        if (document.getElementById('streamSelectModal')) {
+            document.getElementById('streamSelectModal').innerHTML = '<option value="">-- Select Stream (Optional) --</option>';
+        }
+        
+        gradeModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function editGrade(gradeId) {
+        if (!checkPermission('canEdit')) return;
+        
+        editingGradeId = gradeId;
+        
+        showLoading(saveGradeBtn, 'Loading...');
+        
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=get_grade&grade_id=${gradeId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const grade = data.grade;
+                
+                document.getElementById('modalTitle').textContent = 'Edit Custom Grade';
+                saveBtnText.textContent = 'Update Custom Grade';
+                document.getElementById('gradeId').value = grade.id;
+                document.getElementById('classSelectModal').value = grade.class_id;
+                document.getElementById('lowerLimit').value = grade.lower_limit;
+                document.getElementById('upperLimit').value = grade.upper_limit;
+                document.getElementById('grade').value = grade.grade;
+                document.getElementById('points').value = grade.points;
+                document.getElementById('remarks').value = grade.remarks;
+                
+                loadStreams(grade.class_id, document.getElementById('streamSelectModal'), grade.stream_id);
+                
+                hideLoading(saveGradeBtn);
+                
+                gradeModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            } else {
+                showToast('Error', data.message, 'error');
+                hideLoading(saveGradeBtn);
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to load grade data', 'error');
+            hideLoading(saveGradeBtn);
+        });
+    }
+
+    function showDeleteModal(gradeId) {
+        if (!checkPermission('canDelete')) return;
+        
+        gradeToDeleteId = gradeId;
+        deleteModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModals() {
+        gradeModal.classList.remove('active');
+        deleteModal.classList.remove('active');
+        viewModal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Form Validation
+    function validateGradeForm() {
+        const classId = document.getElementById('classSelectModal').value;
+        const lowerLimit = parseInt(document.getElementById('lowerLimit').value);
+        const upperLimit = parseInt(document.getElementById('upperLimit').value);
+        const grade = document.getElementById('grade').value.trim();
+        const points = parseFloat(document.getElementById('points').value);
+        const remarks = document.getElementById('remarks').value.trim();
+        
+        if (!classId) {
+            showToast('Warning', 'Please select a class', 'warning');
+            return false;
+        }
+        
+        if (isNaN(lowerLimit) || lowerLimit < 0 || lowerLimit > 100) {
+            showToast('Warning', 'Lower limit must be a number between 0 and 100', 'warning');
+            return false;
+        }
+        
+        if (isNaN(upperLimit) || upperLimit < 0 || upperLimit > 100) {
+            showToast('Warning', 'Upper limit must be a number between 0 and 100', 'warning');
+            return false;
+        }
+        
+        if (lowerLimit >= upperLimit) {
+            showToast('Warning', 'Lower limit must be less than upper limit', 'warning');
+            return false;
+        }
+        
+        if (!grade) {
+            showToast('Warning', 'Please enter a grade', 'warning');
+            return false;
+        }
+        
+        if (isNaN(points) || points < 0 || points > 4) {
+            showToast('Warning', 'Points must be a number between 0 and 4', 'warning');
+            return false;
+        }
+        
+        if (!remarks) {
+            showToast('Warning', 'Please enter remarks', 'warning');
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Save custom grade
+    function saveGrade() {
+        if (isSubmitting) return;
+        
+        const isEdit = editingGradeId !== null;
+        if (isEdit && !checkPermission('canEdit')) return;
+        if (!isEdit && !checkPermission('canCreate')) return;
+        
+        if (!validateGradeForm()) return;
+        
+        const formData = new FormData(gradeForm);
+        const action = isEdit ? 'update_grade' : 'add_grade';
+        
+        formData.append('action', action);
+        
+        showLoading(saveGradeBtn, isEdit ? 'Updating...' : 'Saving...');
+        isSubmitting = true;
+        
+        fetch('grading.php', {
+            method: 'POST',
+            body: new URLSearchParams(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Success', data.message, 'success');
+                closeModals();
+                // Refresh the page to show updated custom grades
+                location.reload();
+            } else {
+                showToast('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to save custom grade', 'error');
+        })
+        .finally(() => {
+            isSubmitting = false;
+            hideLoading(saveGradeBtn);
+        });
+    }
+
+    // Delete custom grade
+    function confirmDelete() {
+        if (!checkPermission('canDelete')) return;
+        if (isSubmitting) return;
+        
+        showLoading(confirmDeleteBtn, 'Deleting...');
+        isSubmitting = true;
+        
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=delete_grade&grade_id=${gradeToDeleteId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Success', data.message, 'success');
+                closeModals();
+                // Refresh the page to show updated custom grades
+                location.reload();
+            } else {
+                showToast('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to delete custom grade', 'error');
+        })
+        .finally(() => {
+            isSubmitting = false;
+            hideLoading(confirmDeleteBtn);
+        });
+    }
+
+    // Use default CBE grades
+    function useDefaultGrades() {
+        if (!checkPermission('canCreate') && !checkPermission('canUseDefaults')) return;
+        
+        const classId = selectClass.value;
+        const streamId = selectStream.value || '';
+        
+        if (!classId) {
+            showToast('Warning', 'Please select a class first', 'warning');
+            return;
+        }
+        
+        if (!confirm('Save default CBE grades as custom grades for this class? This will override any existing custom grades.')) {
+            return;
+        }
+        
+        showLoading(useDefaultsBtn, 'Saving...');
+        
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=save_default_grades&class_id=${classId}&stream_id=${streamId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Success', data.message, 'success');
+                // Refresh the page to show updated custom grades
+                location.reload();
+            } else {
+                showToast('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to save default grades', 'error');
+        })
+        .finally(() => {
+            hideLoading(useDefaultsBtn);
+        });
+    }
+
+    // Delete all custom grades for class
+    function deleteCustomGrades() {
+        if (!checkPermission('canDelete')) return;
+        
+        const classId = selectClass.value;
+        const streamId = selectStream.value || '';
+        
+        if (!classId) {
+            showToast('Warning', 'Please select a class first', 'warning');
+            return;
+        }
+        
+        if (!confirm('Delete all custom grades for this class? The system will use default CBE grades.')) {
+            return;
+        }
+        
+        showLoading(deleteCustomBtn, 'Deleting...');
+        
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=delete_custom_grades&class_id=${classId}&stream_id=${streamId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Success', data.message, 'success');
+                // Refresh the page to show updated custom grades
+                location.reload();
+            } else {
+                showToast('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error', 'Failed to delete custom grades', 'error');
+        })
+        .finally(() => {
+            hideLoading(deleteCustomBtn);
+        });
+    }
+
+    // Update stats
+    function updateStats() {
+        fetch('grading.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=get_custom_grades_count'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('customGradesCount').textContent = data.total_custom_grades;
+            }
+        })
+        .catch(error => {
+            console.error('Failed to update stats:', error);
+        });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Event Listeners
+        if (addGradeBtn) addGradeBtn.addEventListener('click', openAddGradeModal);
+        if (viewGradesBtn) viewGradesBtn.addEventListener('click', viewGrades);
+        if (loadGradesBtn) loadGradesBtn.addEventListener('click', checkCustomGrades);
+        if (useDefaultsBtn) useDefaultsBtn.addEventListener('click', useDefaultGrades);
+        if (deleteCustomBtn) deleteCustomBtn.addEventListener('click', deleteCustomGrades);
+        
+        if (closeModalBtn) closeModalBtn.addEventListener('click', closeModals);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModals);
+        if (gradeModal) {
+            gradeModal.addEventListener('click', (e) => {
+                if (e.target === gradeModal) closeModals();
+            });
+        }
+        
+        if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', confirmDelete);
+        if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', closeModals);
+        if (closeDeleteModal) closeDeleteModal.addEventListener('click', closeModals);
+        if (deleteModal) {
+            deleteModal.addEventListener('click', (e) => {
+                if (e.target === deleteModal) closeModals();
+            });
+        }
+        
+        if (closeViewModal) closeViewModal.addEventListener('click', closeModals);
+        if (closeViewBtn) closeViewBtn.addEventListener('click', closeModals);
+        if (viewModal) {
+            viewModal.addEventListener('click', (e) => {
+                if (e.target === viewModal) closeModals();
+            });
+        }
+        
+        if (gradeForm) {
+            gradeForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveGrade();
+            });
+        }
+        
+        // Class change events
+        selectClass.addEventListener('change', function() {
+            const classId = this.value;
+            if (classId) {
+                loadStreams(classId, selectStream);
+                selectStream.disabled = false;
+            } else {
+                selectStream.innerHTML = '<option value="">-- Select Class First --</option>';
+                selectStream.disabled = true;
+            }
+        });
+        
+        // Search
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = gradesTableBody.querySelectorAll('tr[data-grade-id]');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+        }
+        
+        // Update stats periodically
+        setInterval(updateStats, 30000); // Update every 30 seconds
+    });
+
+    // Make functions available globally
+    window.openAddGradeModal = openAddGradeModal;
+    window.editGrade = editGrade;
+    window.showDeleteModal = showDeleteModal;
+    window.viewGrades = viewGrades;
+</script>
+</body>
+
+</body>
+</html>

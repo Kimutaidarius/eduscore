@@ -1,0 +1,232 @@
+# Enable rewrite engine
+RewriteEngine On
+
+# Set base directory - IMPORTANT: Uncomment and set if your app is in a subfolder
+# Example: RewriteBase /school/
+# For root directory, keep commented: # RewriteBase /
+# RewriteBase /
+
+# ============================================
+# BASIC SECURITY HEADERS
+# ============================================
+Header set X-Frame-Options "SAMEORIGIN"
+Header set X-XSS-Protection "1; mode=block"
+Header set X-Content-Type-Options "nosniff"
+
+# ============================================
+# PROTECT SENSITIVE FILES
+# ============================================
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(bak|backup|sql|log|old|orig|save|swp|~)$">
+    Require all denied
+</FilesMatch>
+
+# ============================================
+# STATIC ASSETS - ALWAYS ALLOW DIRECT ACCESS
+# ============================================
+# Allow all common asset files
+RewriteRule \.(css|js|jpg|jpeg|png|gif|bmp|ico|svg|webp|woff|woff2|ttf|eot|otf|pdf|map)$ - [L,NC]
+
+# Allow asset directories
+RewriteRule ^(css|js|images|img|fonts|font|assets|uploads|icons|favicon)/ - [L,NC]
+RewriteRule ^(bootstrap|jquery|font-awesome|fontawesome|material-icons)/ - [L,NC]
+
+# ============================================
+# IMPORTANT: API & AJAX - NO REWRITING
+# ============================================
+# These must be at the TOP to prevent rewriting
+RewriteRule ^api/ - [L,NC]
+RewriteRule ^ajax/ - [L,NC]
+RewriteRule ^includes/ - [L,NC]
+RewriteRule ^config/ - [L,NC]
+
+# ============================================
+# AJAX & API - ALLOW DIRECT PHP ACCESS
+# ============================================
+# Allow AJAX requests (X-Requested-With header)
+RewriteCond %{HTTP:X-Requested-With} XMLHttpRequest [NC]
+RewriteRule \.php$ - [L]
+
+# Allow specific process files
+RewriteRule ^(login-process|logout|process|get-data|save-data|update-status|delete-data|fetch|load|search|filter|export|import|upload|download|callback)\.php$ - [L,NC]
+
+# ============================================
+# PHP EXTENSION HIDING (Main Rules)
+# ============================================
+# First, ensure we don't rewrite existing files/directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Check if adding .php makes it a valid file
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*?)/?$ $1.php [L]
+
+# ============================================
+# SPECIFIC PAGE RULES (with fallback)
+# ============================================
+# Authentication pages - EXCLUDE API from these rules
+RewriteRule ^dashboard/?$ dashboard.php [L,NC]
+RewriteRule ^login/?$ login.php [L,NC]
+RewriteRule ^register/?$ register.php [L,NC]
+RewriteRule ^forgot-password/?$ forgot-password.php [L,NC]
+RewriteRule ^reset-password/?$ reset-password.php [L,NC]
+RewriteRule ^logout/?$ logout.php [L,NC]
+
+# Subscription & Activation
+RewriteRule ^subscription/?$ subscription-module.php [L,NC]
+RewriteRule ^activation/?$ activation-module.php [L,NC]
+RewriteRule ^index/?$ index.php [L,NC]
+
+# Academic pages
+RewriteRule ^classes/?$ classes.php [L,NC]
+RewriteRule ^students/?$ students.php [L,NC]
+RewriteRule ^studentslist/?$ studentslist.php [L,NC]
+RewriteRule ^teachers/?$ teachers.php [L,NC]
+RewriteRule ^subjects/?$ subjects.php [L,NC]
+RewriteRule ^roles/?$ roles.php [L,NC]
+RewriteRule ^lessons/?$ lessons.php [L,NC]
+RewriteRule ^grading/?$ grading.php [L,NC]
+RewriteRule ^exams/?$ exams.php [L,NC]
+RewriteRule ^scores/?$ scores.php [L,NC]
+
+# Reports - with analytics SEO-friendly masks
+RewriteRule ^meritlist/?$ meritlist.php [L,NC]
+RewriteRule ^reports/?$ reports.php [L,NC]
+
+# Analytics - SEO landing page (public-facing)
+RewriteRule ^analytics/?$ analytics-page.php [L,NC]
+RewriteRule ^analytics-page/?$ analytics-page.php [L,NC]
+# Alternative SEO-friendly URLs for analytics landing page
+RewriteRule ^exam-analysis/?$ analytics-page.php [L,NC]
+RewriteRule ^exam-analytics/?$ analytics-page.php [L,NC]
+RewriteRule ^student-performance/?$ analytics-page.php [L,NC]
+RewriteRule ^report-cards/?$ analytics-page.php [L,NC]
+
+# Analytics Dashboard - authenticated/dashboard version (original)
+RewriteRule ^analytics-dashboard/?$ analytics.php [L,NC]
+RewriteRule ^analytics-system/?$ analytics.php [L,NC]
+RewriteRule ^exam-dashboard/?$ analytics.php [L,NC]
+
+# Communication
+RewriteRule ^sms/?$ sms.php [L,NC]
+RewriteRule ^attendance/?$ attendance.php [L,NC]
+RewriteRule ^timetable/?$ timetable.php [L,NC]
+
+# ============================================
+# BLOG - SEO-friendly URLs with .php masking
+# ============================================
+# Main blog page
+RewriteRule ^blog/?$ blog.php [L,NC]
+# Individual blog post by ID
+RewriteRule ^blog/([0-9]+)/?$ blog-post.php?id=$1 [L,QSA,NC]
+# Individual blog post by slug
+RewriteRule ^blog/([a-zA-Z0-9-]+)/?$ blog.php?slug=$1 [L,QSA,NC]
+
+# ============================================
+# FEE SYSTEM - .php masking
+# ============================================
+RewriteRule ^feesystem/?$ feesystem.php [L,NC]
+RewriteRule ^fee-system/?$ feesystem.php [L,NC]
+RewriteRule ^fee-management/?$ feesystem.php [L,NC]
+RewriteRule ^feesystem/register/?$ feesystem/register.php [L,NC]
+RewriteRule ^feesystem/login/?$ feesystem/login.php [L,NC]
+RewriteRule ^feesystem/dashboard/?$ feesystem/dashboard.php [L,NC]
+
+# Fee system sub-pages (inside fee_system folder)
+RewriteRule ^fee_system/?$ fee_system/index.php [L,NC]
+RewriteRule ^fee_system/register/?$ fee_system/register.php [L,NC]
+RewriteRule ^fee_system/login/?$ fee_system/login.php [L,NC]
+RewriteRule ^fee_system/dashboard/?$ fee_system/dashboard.php [L,NC]
+
+# ============================================
+# PARENTS PORTAL - .php masking (ROOT FILE)
+# ============================================
+# Main parents portal page (maps to root parents-portal.php)
+RewriteRule ^parents-portal/?$ parents-portal.php [L,NC]
+# Alternative SEO-friendly names for parents portal
+RewriteRule ^parents/?$ parents-portal.php [L,NC]
+RewriteRule ^parent-portal/?$ parents-portal.php [L,NC]
+# Parents portal auth pages (if they exist in root)
+RewriteRule ^parents-portal/register/?$ parents-portal-register.php [L,NC]
+RewriteRule ^parents-portal/login/?$ parents-portal-login.php [L,NC]
+RewriteRule ^parents-portal/dashboard/?$ parents-portal-dashboard.php [L,NC]
+
+# ============================================
+# BULK SMS - .php masking
+# ============================================
+RewriteRule ^bulksms/?$ bulksms/index.php [L,NC]
+RewriteRule ^bulksms/register/?$ bulksms/register.php [L,NC]
+RewriteRule ^bulksms/login/?$ bulksms/login.php [L,NC]
+RewriteRule ^bulk-sms/?$ bulksms/index.php [L,NC]
+
+# Settings & Utility
+RewriteRule ^promotion/?$ promotion.php [L,NC]
+RewriteRule ^utility/?$ utility.php [L,NC]
+RewriteRule ^settings/?$ settings.php [L,NC]
+RewriteRule ^profile/?$ profile.php [L,NC]
+RewriteRule ^teacher-profile/?$ teacher_profile.php [L,NC]
+
+# ============================================
+# 301 REDIRECTS: CANONICAL URL ENFORCEMENT
+# ============================================
+# Blog - Redirect /blog.php to /blog (canonical SEO URL)
+RewriteCond %{THE_REQUEST} \s/blog\.php [NC]
+RewriteRule ^blog\.php$ /blog [R=301,L]
+
+# Feesystem - Redirect /feesystem.php to /feesystem (canonical SEO URL)
+RewriteCond %{THE_REQUEST} \s/feesystem\.php [NC]
+RewriteRule ^feesystem\.php$ /feesystem [R=301,L]
+
+# Parents Portal - Redirect /parents-portal.php to /parents-portal (canonical SEO URL)
+RewriteCond %{THE_REQUEST} \s/parents-portal\.php [NC]
+RewriteRule ^parents-portal\.php$ /parents-portal [R=301,L]
+
+# Analytics - Redirect /analytics-page.php to /analytics (canonical SEO URL)
+RewriteCond %{THE_REQUEST} \s/analytics-page\.php [NC]
+RewriteRule ^analytics-page\.php$ /analytics [R=301,L]
+
+# Analytics - Redirect /analytics.php to /analytics-dashboard
+RewriteCond %{THE_REQUEST} \s/analytics\.php [NC]
+RewriteRule ^analytics\.php$ /analytics-dashboard [R=301,L]
+
+# ============================================
+# ERROR DOCUMENTS
+# ============================================
+ErrorDocument 404 /404.php
+ErrorDocument 403 /403.php
+ErrorDocument 500 /500.php
+
+# ============================================
+# BASIC SECURITY
+# ============================================
+# Disable directory browsing
+Options -Indexes
+
+# ============================================
+# CACHING
+# ============================================
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType image/webp "access plus 1 month"
+</IfModule>
+
+# ============================================
+# SEO & INDEXING HEADERS
+# ============================================
+# Force HTTPS (critical for SEO) - COMMENT THIS OUT FOR LOCAL DEVELOPMENT
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# HSTS (tell browsers to always use HTTPS) - COMMENT THIS OUT FOR LOCAL DEVELOPMENT
+# Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS

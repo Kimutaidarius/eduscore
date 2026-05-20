@@ -1,0 +1,4026 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+require_once 'includes/config.php';
+require_once 'includes/PermissionHelper.php';
+require_once 'includes/session_timeout.php'; 
+
+
+// Detect AJAX
+$isAjax = ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']));
+
+// ✅ SINGLE SOURCE OF TRUTH
+if (
+    empty($_SESSION['authenticated']) ||
+    empty($_SESSION['school_id']) ||
+    empty($_SESSION['teacher_id'])
+) {
+    if ($isAjax) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Unauthorized session'
+        ]);
+        exit;
+    }
+
+    header('Location: login.php');
+    exit;
+}
+
+// Safe session values
+$school_id  = (int) $_SESSION['school_id'];
+$teacher_id = (int) $_SESSION['teacher_id'];
+
+// Initialize Permission Helper
+$permissionHelper = new PermissionHelper($db, $school_id, $teacher_id);
+
+// Check if user has permission to view lessons page
+$permissionHelper->requireAnyPermission(['lessonsView', 'lessonsViewAll'], 'dashboard.php');
+
+// Determine which actions are allowed based on permissions
+$canCreate = $permissionHelper->hasPermission('lessonsCreate');
+$canEdit = $permissionHelper->hasPermission('lessonsEdit');
+$canDelete = $permissionHelper->hasPermission('lessonsDelete');
+$canAssignStudents = $permissionHelper->hasPermission('lessonsAssignStudents');
+$canViewAll = $permissionHelper->hasPermission('lessonsViewAll');
+$isSuperAdmin = $permissionHelper->isSuperAdmin();
+$currentUserRole = $permissionHelper->getRole();
+
+// DB
+if (!isset($db)) {
+    require_once 'config/database.php';
+    $database = new Database();
+    $db = $database->getConnection();
+}
+
+// Get current academic level from session
+$current_level = $_SESSION['academic_level'] ?? 'Primary';
+$school_id = $_SESSION['school_id'];
+
+// Handle AJAX requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+    
+    try {
+        switch ($_POST['action']) {
+            case 'add_lesson':
+                // Check permission
+                if (!$canCreate) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to add lessons']);
+                    break;
+                }
+                $response = addLesson($db, $school_id, $teacher_id);
+                echo json_encode($response);
+                break;
+                
+            case 'update_lesson':
+                // Check permission
+                if (!$canEdit) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to edit lessons']);
+                    break;
+                }
+                $response = updateLesson($db, $school_id);
+                echo json_encode($response);
+                break;
+                
+            case 'delete_lesson':
+                // Check permission
+                if (!$canDelete) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to delete lessons']);
+                    break;
+                }
+                $response = deleteLesson($db, $school_id);
+                echo json_encode($response);
+                break;
+                
+            case 'get_lesson':
+                // Anyone with view permissions can get lesson details
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view lessons']);
+                    break;
+                }
+                $lesson_id = intval($_POST['lesson_id']);
+                $query = "SELECT l.*, s.subject_name, c.class_level, st.stream_name,
+                         CONCAT(t.firstname, ' ', t.lastname) as teacher_name
+                         FROM tbllessons l 
+                         JOIN tblsubjects s ON l.subject_id = s.id 
+                         JOIN tblclasses c ON l.class_id = c.id 
+                         LEFT JOIN tblstreams st ON l.stream_id = st.id
+                         LEFT JOIN tblteachers t ON l.teacher_id = t.id 
+                         WHERE l.id = :lesson_id AND l.school_id = :school_id";
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(":lesson_id", $lesson_id);
+                $stmt->bindParam(":school_id", $school_id);
+                $stmt->execute();
+                $lesson = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($lesson) {
+                    // Get assigned students
+                    $student_query = "SELECT student_id FROM tbllesson_students WHERE lesson_id = :lesson_id";
+                    $student_stmt = $db->prepare($student_query);
+                    $student_stmt->bindParam(":lesson_id", $lesson_id);
+                    $student_stmt->execute();
+                    $assigned_students = $student_stmt->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    $lesson['assigned_students'] = $assigned_students;
+                    echo json_encode(['success' => true, 'lesson' => $lesson]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Lesson not found']);
+                }
+                break;
+                
+            case 'get_classes_by_level':
+                // Anyone with view permissions can get classes
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view classes']);
+                    break;
+                }
+                $academic_level = $_POST['academic_level'] ?? $current_level;
+                
+                $academic_level_map = [
+                    'Primary' => 'primary',
+                    'primary' => 'primary',
+                    'Junior Secondary' => 'junior_secondary',
+                    'junior_secondary' => 'junior_secondary',
+                    'Secondary' => 'secondary',
+                    'secondary' => 'secondary'
+                ];
+                
+                $db_level = $academic_level_map[$academic_level] ?? $academic_level;
+                
+                $query = "SELECT id, class_level FROM tblclasses 
+                         WHERE school_id = :school_id AND academic_level = :academic_level
+                         ORDER BY CASE 
+                            WHEN class_level LIKE 'Grade%' THEN CAST(SUBSTRING(class_level, 7) AS UNSIGNED)
+                            WHEN class_level LIKE 'Form%' THEN CAST(SUBSTRING(class_level, 6) AS UNSIGNED) + 8
+                            ELSE 999 END";
+                
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+                $stmt->bindParam(":academic_level", $db_level);
+                $stmt->execute();
+                $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'classes' => $classes]);
+                break;
+                
+            case 'get_students_by_class':
+                // Check permission for viewing students
+                if (!$permissionHelper->hasAnyPermission(['studentsView', 'studentsViewAll', 'lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view students']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                $stream_id = isset($_POST['stream_id']) && $_POST['stream_id'] !== '' ? intval($_POST['stream_id']) : null;
+                
+                $query = "SELECT id, FirstName, SecondName, LastName, AdmNo 
+                         FROM tblstudents 
+                         WHERE class_id = :class_id AND school_id = :school_id";
+                
+                $params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id) {
+                    $query .= " AND StreamId = :stream_id";
+                    $params[':stream_id'] = $stream_id;
+                }
+                
+                $query .= " ORDER BY FirstName, SecondName";
+                
+                $stmt = $db->prepare($query);
+                $stmt->execute($params);
+                $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'students' => $students]);
+                break;
+                
+            case 'get_streams_by_class':
+                // Anyone with view permissions can get streams
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view streams']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                
+                $query = "SELECT id, stream_name FROM tblstreams 
+                         WHERE class_id = :class_id AND school_id = :school_id 
+                         ORDER BY stream_name";
+                
+                $stmt = $db->prepare($query);
+                $stmt->bindParam(":class_id", $class_id);
+                $stmt->bindParam(":school_id", $school_id);
+                $stmt->execute();
+                $streams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'streams' => $streams]);
+                break;
+                
+            case 'get_subjects_by_class_stream':
+                // Anyone with view permissions can get subjects
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view subjects']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                $stream_id = isset($_POST['stream_id']) && $_POST['stream_id'] !== '' ? intval($_POST['stream_id']) : null;
+                
+                $query = "SELECT id, subject_name FROM tblsubjects 
+                         WHERE class_id = :class_id AND school_id = :school_id";
+                
+                $params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id) {
+                    $query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                    $params[':stream_id'] = $stream_id;
+                }
+                
+                $query .= " ORDER BY subject_name";
+                
+                $stmt = $db->prepare($query);
+                $stmt->execute($params);
+                $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'subjects' => $subjects]);
+                break;
+                
+            case 'get_students_count_by_class':
+                // Anyone with view permissions can get counts
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view counts']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                $stream_id = isset($_POST['stream_id']) && $_POST['stream_id'] !== '' ? intval($_POST['stream_id']) : null;
+                
+                $query = "SELECT COUNT(*) as student_count 
+                         FROM tblstudents 
+                         WHERE class_id = :class_id AND school_id = :school_id";
+                
+                $params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id) {
+                    $query .= " AND StreamId = :stream_id";
+                    $params[':stream_id'] = $stream_id;
+                }
+                
+                $stmt = $db->prepare($query);
+                $stmt->execute($params);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                echo json_encode(['success' => true, 'student_count' => $result['student_count']]);
+                break;
+                
+            case 'get_student_subject_assignments':
+                // Check permission for viewing assignments
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view assignments']);
+                    break;
+                }
+                $class_id = intval($_POST['class_id']);
+                $stream_id = isset($_POST['stream_id']) && $_POST['stream_id'] !== '' ? intval($_POST['stream_id']) : null;
+                
+                $student_query = "SELECT id, FirstName, SecondName, LastName, AdmNo 
+                                 FROM tblstudents 
+                                 WHERE class_id = :class_id AND school_id = :school_id";
+                
+                $student_params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id) {
+                    $student_query .= " AND StreamId = :stream_id";
+                    $student_params[':stream_id'] = $stream_id;
+                }
+                
+                $student_query .= " ORDER BY FirstName, SecondName";
+                
+                $student_stmt = $db->prepare($student_query);
+                $student_stmt->execute($student_params);
+                $students = $student_stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $subject_query = "SELECT id, subject_name FROM tblsubjects 
+                                 WHERE class_id = :class_id AND school_id = :school_id";
+                
+                $subject_params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id) {
+                    $subject_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                    $subject_params[':stream_id'] = $stream_id;
+                }
+                
+                $subject_query .= " ORDER BY subject_name";
+                
+                $subject_stmt = $db->prepare($subject_query);
+                $subject_stmt->execute($subject_params);
+                $subjects = $subject_stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $lesson_query = "SELECT l.id, l.subject_id, s.subject_name 
+                                FROM tbllessons l 
+                                JOIN tblsubjects s ON l.subject_id = s.id 
+                                WHERE l.class_id = :class_id AND l.school_id = :school_id";
+                
+                $lesson_params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id) {
+                    $lesson_query .= " AND (l.stream_id = :stream_id OR l.stream_id IS NULL)";
+                    $lesson_params[':stream_id'] = $stream_id;
+                }
+                
+                $lesson_stmt = $db->prepare($lesson_query);
+                $lesson_stmt->execute($lesson_params);
+                $lessons = $lesson_stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $lesson_subject_map = [];
+                foreach ($lessons as $lesson) {
+                    $lesson_subject_map[$lesson['id']] = $lesson['subject_id'];
+                }
+                
+                $assignment_query = "SELECT ls.lesson_id, ls.student_id 
+                                    FROM tbllesson_students ls 
+                                    JOIN tbllessons l ON ls.lesson_id = l.id 
+                                    WHERE l.class_id = :class_id AND ls.school_id = :school_id";
+                
+                $assignment_params = [':class_id' => $class_id, ':school_id' => $school_id];
+                
+                if ($stream_id) {
+                    $assignment_query .= " AND (l.stream_id = :stream_id OR l.stream_id IS NULL)";
+                    $assignment_params[':stream_id'] = $stream_id;
+                }
+                
+                $assignment_stmt = $db->prepare($assignment_query);
+                $assignment_stmt->execute($assignment_params);
+                $assignments = $assignment_stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $student_assignments = [];
+                foreach ($assignments as $assignment) {
+                    $student_id = $assignment['student_id'];
+                    $lesson_id = $assignment['lesson_id'];
+                    $subject_id = $lesson_subject_map[$lesson_id] ?? null;
+                    
+                    if ($subject_id) {
+                        if (!isset($student_assignments[$student_id])) {
+                            $student_assignments[$student_id] = [];
+                        }
+                        if (!in_array($subject_id, $student_assignments[$student_id])) {
+                            $student_assignments[$student_id][] = $subject_id;
+                        }
+                    }
+                }
+                
+                echo json_encode([
+                    'success' => true, 
+                    'students' => $students,
+                    'subjects' => $subjects,
+                    'student_assignments' => $student_assignments
+                ]);
+                break;
+                
+            case 'get_lessons_stats':
+                // Check view permission
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view stats']);
+                    break;
+                }
+                // Get total lessons count
+                $total_query = "SELECT COUNT(*) as total FROM tbllessons WHERE school_id = :school_id";
+                $total_stmt = $db->prepare($total_query);
+                $total_stmt->bindParam(":school_id", $school_id);
+                $total_stmt->execute();
+                $total_lessons = $total_stmt->fetchColumn();
+                
+                // Get total assigned teachers (unique teachers with lessons)
+                $teachers_query = "SELECT COUNT(DISTINCT teacher_id) as assigned_teachers 
+                                  FROM tbllessons 
+                                  WHERE school_id = :school_id AND teacher_id IS NOT NULL";
+                $teachers_stmt = $db->prepare($teachers_query);
+                $teachers_stmt->bindParam(":school_id", $school_id);
+                $teachers_stmt->execute();
+                $assigned_teachers = $teachers_stmt->fetchColumn();
+                
+                // Get total enrolled students (unique students in lesson_students)
+                $students_query = "SELECT COUNT(DISTINCT student_id) as total_students 
+                                  FROM tbllesson_students 
+                                  WHERE school_id = :school_id";
+                $students_stmt = $db->prepare($students_query);
+                $students_stmt->bindParam(":school_id", $school_id);
+                $students_stmt->execute();
+                $total_students = $students_stmt->fetchColumn();
+                
+                echo json_encode([
+                    'success' => true,
+                    'stats' => [
+                        'total_lessons' => $total_lessons,
+                        'assigned_teachers' => $assigned_teachers,
+                        'total_students' => $total_students
+                    ]
+                ]);
+                break;
+                
+case 'update_student_assignment':
+    // Check permission for assigning students
+    if (!$canAssignStudents && !$canEdit && !$isSuperAdmin) {
+        echo json_encode(['success' => false, 'message' => 'You do not have permission to assign students to lessons']);
+        break;
+    }
+    
+    $student_id = intval($_POST['student_id']);
+    $subject_id = intval($_POST['subject_id']);
+    $assign = ($_POST['assign'] === 'true' || $_POST['assign'] === '1');
+    
+    try {
+        // First, find the student's class and stream
+        $student_query = "SELECT class_id, StreamId FROM tblstudents WHERE id = :student_id AND school_id = :school_id";
+        $student_stmt = $db->prepare($student_query);
+        $student_stmt->bindParam(":student_id", $student_id, PDO::PARAM_INT);
+        $student_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+        $student_stmt->execute();
+        $student_info = $student_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$student_info) {
+            echo json_encode(['success' => false, 'message' => 'Student not found']);
+            break;
+        }
+        
+        // Find or create lesson for this subject, class, and stream
+        // FIXED: Use separate parameters for the two stream conditions
+        $lesson_query = "SELECT id FROM tbllessons 
+                        WHERE subject_id = :subject_id 
+                        AND class_id = :class_id 
+                        AND school_id = :school_id
+                        AND (stream_id = :stream_id_param OR (stream_id IS NULL AND :stream_id_null IS NULL))";
+        
+        $lesson_stmt = $db->prepare($lesson_query);
+        $lesson_stmt->bindParam(":subject_id", $subject_id, PDO::PARAM_INT);
+        $lesson_stmt->bindParam(":class_id", $student_info['class_id'], PDO::PARAM_INT);
+        $lesson_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+        
+        $stream_param = !empty($student_info['StreamId']) ? $student_info['StreamId'] : null;
+        $lesson_stmt->bindParam(":stream_id_param", $stream_param, $stream_param ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $lesson_stmt->bindParam(":stream_id_null", $stream_param, $stream_param ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $lesson_stmt->execute();
+        $lesson = $lesson_stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$lesson) {
+            // Create a new lesson - need a teacher_id, use a default or get from session
+            $default_teacher_id = $_SESSION['teacher_id'] ?? null;
+            
+            if (!$default_teacher_id) {
+                // Get first teacher in school as fallback
+                $teacher_fallback = $db->prepare("SELECT id FROM tblteachers WHERE school_id = :school_id LIMIT 1");
+                $teacher_fallback->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+                $teacher_fallback->execute();
+                $default_teacher_id = $teacher_fallback->fetchColumn();
+            }
+            
+            $create_lesson_query = "INSERT INTO tbllessons 
+                                  (subject_id, class_id, stream_id, teacher_id, school_id, created_by) 
+                                  VALUES (:subject_id, :class_id, :stream_id, :teacher_id, :school_id, :created_by)";
+            
+            $create_lesson_stmt = $db->prepare($create_lesson_query);
+            $create_lesson_stmt->bindParam(":subject_id", $subject_id, PDO::PARAM_INT);
+            $create_lesson_stmt->bindParam(":class_id", $student_info['class_id'], PDO::PARAM_INT);
+            $create_lesson_stmt->bindParam(":stream_id", $stream_param, $stream_param ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            $create_lesson_stmt->bindParam(":teacher_id", $default_teacher_id, PDO::PARAM_INT);
+            $create_lesson_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+            
+            $created_by = $_SESSION['id'] ?? $_SESSION['teacher_id'] ?? $default_teacher_id;
+            $create_lesson_stmt->bindParam(":created_by", $created_by, PDO::PARAM_INT);
+            
+            if (!$create_lesson_stmt->execute()) {
+                $errorInfo = $create_lesson_stmt->errorInfo();
+                error_log("Create lesson error: " . print_r($errorInfo, true));
+                echo json_encode(['success' => false, 'message' => 'Failed to create lesson: ' . ($errorInfo[2] ?? 'Unknown error')]);
+                break;
+            }
+            
+            $lesson_id = $db->lastInsertId();
+        } else {
+            $lesson_id = $lesson['id'];
+        }
+        
+        if ($assign) {
+            // Check if already assigned
+            $check_query = "SELECT id FROM tbllesson_students 
+                           WHERE lesson_id = :lesson_id AND student_id = :student_id AND school_id = :school_id";
+            $check_stmt = $db->prepare($check_query);
+            $check_stmt->bindParam(":lesson_id", $lesson_id, PDO::PARAM_INT);
+            $check_stmt->bindParam(":student_id", $student_id, PDO::PARAM_INT);
+            $check_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+            $check_stmt->execute();
+            
+            if (!$check_stmt->fetch()) {
+                // Assign student to lesson
+                $assign_query = "INSERT INTO tbllesson_students (lesson_id, student_id, school_id) 
+                                VALUES (:lesson_id, :student_id, :school_id)";
+                
+                $assign_stmt = $db->prepare($assign_query);
+                $assign_stmt->bindParam(":lesson_id", $lesson_id, PDO::PARAM_INT);
+                $assign_stmt->bindParam(":student_id", $student_id, PDO::PARAM_INT);
+                $assign_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+                
+                if ($assign_stmt->execute()) {
+                    echo json_encode(['success' => true, 'message' => 'Student assigned to subject']);
+                } else {
+                    $errorInfo = $assign_stmt->errorInfo();
+                    error_log("Assign student error: " . print_r($errorInfo, true));
+                    echo json_encode(['success' => false, 'message' => 'Failed to assign student: ' . ($errorInfo[2] ?? 'Unknown error')]);
+                }
+            } else {
+                echo json_encode(['success' => true, 'message' => 'Student already assigned to subject']);
+            }
+        } else {
+            // Remove student from lesson
+            $remove_query = "DELETE FROM tbllesson_students 
+                            WHERE lesson_id = :lesson_id 
+                            AND student_id = :student_id 
+                            AND school_id = :school_id";
+            
+            $remove_stmt = $db->prepare($remove_query);
+            $remove_stmt->bindParam(":lesson_id", $lesson_id, PDO::PARAM_INT);
+            $remove_stmt->bindParam(":student_id", $student_id, PDO::PARAM_INT);
+            $remove_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+            
+            if ($remove_stmt->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Student removed from subject']);
+            } else {
+                $errorInfo = $remove_stmt->errorInfo();
+                error_log("Remove student error: " . print_r($errorInfo, true));
+                echo json_encode(['success' => false, 'message' => 'Failed to remove student: ' . ($errorInfo[2] ?? 'Unknown error')]);
+            }
+        }
+        
+    } catch (PDOException $e) {
+        error_log("Update student assignment error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+    break;
+            case 'get_lessons_ajax':
+                // Check view permission
+                if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])) {
+                    echo json_encode(['success' => false, 'message' => 'You do not have permission to view lessons']);
+                    break;
+                }
+                $page = isset($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
+                $class_filter = isset($_POST['class_filter']) && $_POST['class_filter'] !== '' ? intval($_POST['class_filter']) : '';
+                $limit = 10;
+                $offset = ($page - 1) * $limit;
+                
+                $lessons_query = "SELECT l.id, s.subject_name, c.class_level, st.stream_name,
+                                 CONCAT(t.firstname, ' ', t.lastname) as teacher_name,
+                                 (SELECT COUNT(*) FROM tbllesson_students ls WHERE ls.lesson_id = l.id) as student_count
+                                 FROM tbllessons l 
+                                 JOIN tblsubjects s ON l.subject_id = s.id 
+                                 JOIN tblclasses c ON l.class_id = c.id 
+                                 LEFT JOIN tblstreams st ON l.stream_id = st.id
+                                 LEFT JOIN tblteachers t ON l.teacher_id = t.id 
+                                 WHERE l.school_id = :school_id";
+                
+                $count_query = "SELECT COUNT(*) FROM tbllessons l 
+                               JOIN tblsubjects s ON l.subject_id = s.id 
+                               JOIN tblclasses c ON l.class_id = c.id 
+                               WHERE l.school_id = :school_id";
+                
+                $params = [':school_id' => $school_id];
+                
+                if (!empty($class_filter)) {
+                    $lessons_query .= " AND l.class_id = :class_filter";
+                    $count_query .= " AND l.class_id = :class_filter";
+                    $params[':class_filter'] = $class_filter;
+                }
+                
+                $lessons_query .= " ORDER BY c.class_level, s.subject_name LIMIT :limit OFFSET :offset";
+                
+                $count_stmt = $db->prepare($count_query);
+                foreach ($params as $key => $value) {
+                    if ($key !== ':limit' && $key !== ':offset') {
+                        $count_stmt->bindValue($key, $value);
+                    }
+                }
+                $count_stmt->execute();
+                $total_lessons = $count_stmt->fetchColumn();
+                $total_pages = ceil($total_lessons / $limit);
+                
+                $params[':limit'] = $limit;
+                $params[':offset'] = $offset;
+                
+                $lessons_stmt = $db->prepare($lessons_query);
+                foreach ($params as $key => $value) {
+                    $lessons_stmt->bindValue($key, $value, $key === ':limit' || $key === ':offset' ? PDO::PARAM_INT : PDO::PARAM_STR);
+                }
+                $lessons_stmt->execute();
+                $lessons = $lessons_stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                $html = '';
+                if (!empty($lessons)) {
+                    foreach ($lessons as $lesson) {
+                        $html .= '<tr data-lesson-id="' . $lesson['id'] . '">';
+                        $html .= '<td>' . htmlspecialchars($lesson['subject_name']) . '</td>';
+                        $html .= '<td>' . htmlspecialchars($lesson['class_level']) . '</td>';
+                        $html .= '<td>' . htmlspecialchars($lesson['stream_name'] ?? 'N/A') . '</td>';
+                        $html .= '<td>' . htmlspecialchars($lesson['teacher_name'] ?? 'Not Assigned') . '</td>';
+                        $html .= '<td>' . htmlspecialchars($lesson['student_count']) . ' students</td>';
+                        $html .= '<td>';
+                        $html .= '<div class="actions">';
+                        if ($canEdit) {
+                            $html .= '<button class="action-btn-small edit-btn" onclick="editLesson(' . $lesson['id'] . ')" title="Edit Lesson">';
+                            $html .= '<i class="fas fa-edit"></i>';
+                            $html .= '</button>';
+                        }
+                        if ($canDelete) {
+                            $html .= '<button class="action-btn-small delete-btn" onclick="showDeleteModal(' . $lesson['id'] . ')" title="Delete Lesson">';
+                            $html .= '<i class="fas fa-trash"></i>';
+                            $html .= '</button>';
+                        }
+                        $html .= '</div>';
+                        $html .= '</td>';
+                        $html .= '</tr>';
+                    }
+                } else {
+                    $html .= '<tr>';
+                    $html .= '<td colspan="6">';
+                    $html .= '<div class="empty-state">';
+                    $html .= '<i class="fas fa-book"></i>';
+                    $html .= '<h3>No Lessons Found</h3>';
+                    $html .= '<p>Get started by assigning your first lesson</p>';
+                    if ($canCreate) {
+                        $html .= '<button class="btn btn-primary" onclick="openAddLessonModal()">';
+                        $html .= '<i class="fas fa-plus"></i> Assign Lesson';
+                        $html .= '</button>';
+                    }
+                    $html .= '</div>';
+                    $html .= '</td>';
+                    $html .= '</tr>';
+                }
+                
+                $pagination_html = '';
+                if ($total_pages > 1) {
+                    $pagination_html .= '<div class="pagination">';
+                    $pagination_html .= '<button class="btn btn-secondary" onclick="changePage(' . max(1, $page - 1) . ')" ' . ($page <= 1 ? 'disabled' : '') . '>';
+                    $pagination_html .= '<i class="fas fa-chevron-left"></i> Previous';
+                    $pagination_html .= '</button>';
+                    
+                    $pagination_html .= '<span style="display: flex; gap: 5px;">';
+                    for ($i = 1; $i <= $total_pages; $i++) {
+                        $active_class = $i === $page ? 'active' : '';
+                        $pagination_html .= '<button class="btn ' . $active_class . '" onclick="changePage(' . $i . ')">';
+                        $pagination_html .= $i;
+                        $pagination_html .= '</button>';
+                    }
+                    $pagination_html .= '</span>';
+                    
+                    $pagination_html .= '<button class="btn btn-secondary" onclick="changePage(' . min($total_pages, $page + 1) . ')" ' . ($page >= $total_pages ? 'disabled' : '') . '>';
+                    $pagination_html .= 'Next <i class="fas fa-chevron-right"></i>';
+                    $pagination_html .= '</button>';
+                    $pagination_html .= '</div>';
+                }
+                
+                echo json_encode([
+                    'success' => true,
+                    'html' => $html,
+                    'pagination' => $pagination_html,
+                    'total_lessons' => $total_lessons,
+                    'total_pages' => $total_pages,
+                    'current_page' => $page
+                ]);
+                break;
+                
+            default:
+                echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        }
+    } catch (PDOException $e) {
+        error_log("Lessons AJAX error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    }
+    exit;
+}
+
+// Function to add lesson
+function addLesson($db, $school_id, $teacher_id) {
+    $required_fields = ['class_id', 'teacher_id'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            return ['success' => false, 'message' => "Required field '$field' is missing"];
+        }
+    }
+    
+    $subject_ids = [];
+    if (!empty($_POST['subject_ids'])) {
+        $subject_ids = explode(',', $_POST['subject_ids']);
+        $subject_ids = array_filter($subject_ids, 'strlen');
+    }
+    
+    if (empty($subject_ids)) {
+        return ['success' => false, 'message' => 'Please select at least one subject'];
+    }
+    
+    $created_lessons = [];
+    $errors = [];
+    
+    try {
+        $db->beginTransaction();
+        
+        // Get the created_by user ID from session - use teacher_id if id is not set
+        $created_by = $_SESSION['id'] ?? $_SESSION['teacher_id'] ?? null;
+        
+        if (!$created_by) {
+            return ['success' => false, 'message' => 'User session not found'];
+        }
+        
+        foreach ($subject_ids as $subject_id) {
+            $check_query = "SELECT id FROM tbllessons WHERE subject_id = :subject_id AND class_id = :class_id AND school_id = :school_id";
+            $check_params = [':subject_id' => $subject_id, ':class_id' => $_POST['class_id'], ':school_id' => $school_id];
+            
+            if (!empty($_POST['stream_id'])) {
+                $check_query .= " AND (stream_id = :stream_id OR stream_id IS NULL)";
+                $check_params[':stream_id'] = $_POST['stream_id'];
+            } else {
+                $check_query .= " AND stream_id IS NULL";
+            }
+            
+            $check_stmt = $db->prepare($check_query);
+            $check_stmt->execute($check_params);
+            
+            if ($check_stmt->rowCount() > 0) {
+                $subject_name_query = "SELECT subject_name FROM tblsubjects WHERE id = :subject_id";
+                $subject_name_stmt = $db->prepare($subject_name_query);
+                $subject_name_stmt->bindParam(":subject_id", $subject_id);
+                $subject_name_stmt->execute();
+                $subject_name = $subject_name_stmt->fetchColumn();
+                
+                $errors[] = "Lesson already exists for subject: " . $subject_name;
+                continue;
+            }
+            
+            $query = "INSERT INTO tbllessons 
+                     (subject_id, class_id, stream_id, teacher_id, school_id, created_by) 
+                     VALUES (:subject_id, :class_id, :stream_id, :teacher_id, :school_id, :created_by)";
+            
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(":subject_id", $subject_id);
+            $stmt->bindParam(":class_id", $_POST['class_id']);
+            
+            $stream_id = !empty($_POST['stream_id']) ? $_POST['stream_id'] : null;
+            $stmt->bindParam(":stream_id", $stream_id, $stream_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            
+            $stmt->bindParam(":teacher_id", $_POST['teacher_id']);
+            $stmt->bindParam(":school_id", $school_id);
+            $stmt->bindParam(":created_by", $created_by, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                $lesson_id = $db->lastInsertId();
+                
+                if (isset($_POST['assign_all_students']) && $_POST['assign_all_students'] == '1') {
+                    $student_query = "SELECT id FROM tblstudents 
+                                    WHERE class_id = :class_id AND school_id = :school_id";
+                    
+                    $params = [':class_id' => $_POST['class_id'], ':school_id' => $school_id];
+                    
+                    if (!empty($stream_id)) {
+                        $student_query .= " AND StreamId = :stream_id";
+                        $params[':stream_id'] = $stream_id;
+                    }
+                    
+                    $student_stmt = $db->prepare($student_query);
+                    $student_stmt->execute($params);
+                    $all_students = $student_stmt->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    if (!empty($all_students)) {
+                        $assign_query = "INSERT INTO tbllesson_students (lesson_id, student_id, school_id) VALUES (:lesson_id, :student_id, :school_id)";
+                        $assign_stmt = $db->prepare($assign_query);
+                        
+                        foreach ($all_students as $student_id) {
+                            $assign_stmt->bindParam(":lesson_id", $lesson_id);
+                            $assign_stmt->bindParam(":student_id", $student_id);
+                            $assign_stmt->bindParam(":school_id", $school_id);
+                            $assign_stmt->execute();
+                        }
+                    }
+                } elseif (!empty($_POST['student_ids'])) {
+                    $student_ids = is_array($_POST['student_ids']) ? $_POST['student_ids'] : explode(',', $_POST['student_ids']);
+                    
+                    $assign_query = "INSERT INTO tbllesson_students (lesson_id, student_id, school_id) VALUES (:lesson_id, :student_id, :school_id)";
+                    $assign_stmt = $db->prepare($assign_query);
+                    
+                    foreach ($student_ids as $student_id) {
+                        if (!empty(trim($student_id))) {
+                            $assign_stmt->bindParam(":lesson_id", $lesson_id);
+                            $assign_stmt->bindParam(":student_id", $student_id);
+                            $assign_stmt->bindParam(":school_id", $school_id);
+                            $assign_stmt->execute();
+                        }
+                    }
+                }
+                
+                $new_lesson_query = "SELECT l.id, s.subject_name, c.class_level, st.stream_name,
+                                    CONCAT(t.firstname, ' ', t.lastname) as teacher_name,
+                                    (SELECT COUNT(*) FROM tbllesson_students ls WHERE ls.lesson_id = l.id) as student_count
+                                    FROM tbllessons l 
+                                    JOIN tblsubjects s ON l.subject_id = s.id 
+                                    JOIN tblclasses c ON l.class_id = c.id 
+                                    LEFT JOIN tblstreams st ON l.stream_id = st.id
+                                    LEFT JOIN tblteachers t ON l.teacher_id = t.id 
+                                    WHERE l.id = :lesson_id AND l.school_id = :school_id";
+                
+                $new_lesson_stmt = $db->prepare($new_lesson_query);
+                $new_lesson_stmt->bindParam(":lesson_id", $lesson_id);
+                $new_lesson_stmt->bindParam(":school_id", $school_id);
+                $new_lesson_stmt->execute();
+                $created_lessons[] = $new_lesson_stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        }
+        
+        if (empty($created_lessons) && !empty($errors)) {
+            $db->rollBack();
+            return ['success' => false, 'message' => implode('<br>', $errors)];
+        }
+        
+        if (empty($created_lessons)) {
+            $db->rollBack();
+            return ['success' => false, 'message' => 'No lessons were created'];
+        }
+        
+        $db->commit();
+        
+        $message = count($created_lessons) . ' lesson(s) assigned successfully';
+        if (!empty($errors)) {
+            $message .= '<br>' . implode('<br>', $errors);
+        }
+        
+        return [
+            'success' => true, 
+            'message' => $message, 
+            'lessons' => $created_lessons
+        ];
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+// Function to update lesson
+function updateLesson($db, $school_id) {
+    $lesson_id = intval($_POST['lesson_id']);
+    
+    $check_query = "SELECT id FROM tbllessons WHERE id = :lesson_id AND school_id = :school_id";
+    $check_stmt = $db->prepare($check_query);
+    $check_stmt->bindParam(":lesson_id", $lesson_id);
+    $check_stmt->bindParam(":school_id", $school_id);
+    $check_stmt->execute();
+    
+    if ($check_stmt->rowCount() === 0) {
+        return ['success' => false, 'message' => 'Lesson not found'];
+    }
+    
+    $required_fields = ['subject_id', 'class_id', 'teacher_id'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            return ['success' => false, 'message' => "Required field '$field' is missing"];
+        }
+    }
+    
+    try {
+        $db->beginTransaction();
+        
+        $stream_id = !empty($_POST['stream_id']) ? $_POST['stream_id'] : null;
+        
+        $query = "UPDATE tbllessons 
+                 SET subject_id = :subject_id, class_id = :class_id, 
+                     stream_id = :stream_id, teacher_id = :teacher_id,
+                     updated_at = CURRENT_TIMESTAMP
+                 WHERE id = :lesson_id AND school_id = :school_id";
+        
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":subject_id", $_POST['subject_id']);
+        $stmt->bindParam(":class_id", $_POST['class_id']);
+        $stmt->bindParam(":stream_id", $stream_id, $stream_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $stmt->bindParam(":teacher_id", $_POST['teacher_id']);
+        $stmt->bindParam(":lesson_id", $lesson_id);
+        $stmt->bindParam(":school_id", $school_id);
+        
+        if ($stmt->execute()) {
+            $delete_query = "DELETE FROM tbllesson_students WHERE lesson_id = :lesson_id";
+            $delete_stmt = $db->prepare($delete_query);
+            $delete_stmt->bindParam(":lesson_id", $lesson_id);
+            $delete_stmt->execute();
+            
+            if (isset($_POST['assign_all_students']) && $_POST['assign_all_students'] == '1') {
+                $student_query = "SELECT id FROM tblstudents 
+                                WHERE class_id = :class_id AND school_id = :school_id";
+                
+                $params = [':class_id' => $_POST['class_id'], ':school_id' => $school_id];
+                
+                if (!empty($stream_id)) {
+                    $student_query .= " AND StreamId = :stream_id";
+                    $params[':stream_id'] = $stream_id;
+                }
+                
+                $student_stmt = $db->prepare($student_query);
+                $student_stmt->execute($params);
+                $all_students = $student_stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                if (!empty($all_students)) {
+                    $assign_query = "INSERT INTO tbllesson_students (lesson_id, student_id, school_id) VALUES (:lesson_id, :student_id, :school_id)";
+                    $assign_stmt = $db->prepare($assign_query);
+                    
+                    foreach ($all_students as $student_id) {
+                        $assign_stmt->bindParam(":lesson_id", $lesson_id);
+                        $assign_stmt->bindParam(":student_id", $student_id);
+                        $assign_stmt->bindParam(":school_id", $school_id);
+                        $assign_stmt->execute();
+                    }
+                }
+            } elseif (!empty($_POST['student_ids'])) {
+                $student_ids = is_array($_POST['student_ids']) ? $_POST['student_ids'] : explode(',', $_POST['student_ids']);
+                
+                $assign_query = "INSERT INTO tbllesson_students (lesson_id, student_id, school_id) VALUES (:lesson_id, :student_id, :school_id)";
+                $assign_stmt = $db->prepare($assign_query);
+                
+                foreach ($student_ids as $student_id) {
+                    if (!empty(trim($student_id))) {
+                        $assign_stmt->bindParam(":lesson_id", $lesson_id);
+                        $assign_stmt->bindParam(":student_id", $student_id);
+                        $assign_stmt->bindParam(":school_id", $school_id);
+                        $assign_stmt->execute();
+                    }
+                }
+            }
+            
+            $updated_lesson_query = "SELECT l.id, s.subject_name, c.class_level, st.stream_name,
+                                    CONCAT(t.firstname, ' ', t.lastname) as teacher_name,
+                                    (SELECT COUNT(*) FROM tbllesson_students ls WHERE ls.lesson_id = l.id) as student_count
+                                    FROM tbllessons l 
+                                    JOIN tblsubjects s ON l.subject_id = s.id 
+                                    JOIN tblclasses c ON l.class_id = c.id 
+                                    LEFT JOIN tblstreams st ON l.stream_id = st.id
+                                    LEFT JOIN tblteachers t ON l.teacher_id = t.id 
+                                    WHERE l.id = :lesson_id AND l.school_id = :school_id";
+            
+            $updated_lesson_stmt = $db->prepare($updated_lesson_query);
+            $updated_lesson_stmt->bindParam(":lesson_id", $lesson_id);
+            $updated_lesson_stmt->bindParam(":school_id", $school_id);
+            $updated_lesson_stmt->execute();
+            $updated_lesson = $updated_lesson_stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $db->commit();
+            return [
+                'success' => true, 
+                'message' => 'Lesson updated successfully', 
+                'lesson' => $updated_lesson
+            ];
+        } else {
+            $db->rollBack();
+            return ['success' => false, 'message' => 'Failed to update lesson'];
+        }
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+// Function to delete lesson
+function deleteLesson($db, $school_id) {
+    $lesson_id = intval($_POST['lesson_id']);
+    
+    $check_query = "SELECT id FROM tbllessons WHERE id = :lesson_id AND school_id = :school_id";
+    $check_stmt = $db->prepare($check_query);
+    $check_stmt->bindParam(":lesson_id", $lesson_id);
+    $check_stmt->bindParam(":school_id", $school_id);
+    $check_stmt->execute();
+    
+    if ($check_stmt->rowCount() === 0) {
+        return ['success' => false, 'message' => 'Lesson not found'];
+    }
+    
+    try {
+        $db->beginTransaction();
+        
+        $delete_students_query = "DELETE FROM tbllesson_students WHERE lesson_id = :lesson_id";
+        $delete_students_stmt = $db->prepare($delete_students_query);
+        $delete_students_stmt->bindParam(":lesson_id", $lesson_id);
+        $delete_students_stmt->execute();
+        
+        $query = "DELETE FROM tbllessons WHERE id = :lesson_id AND school_id = :school_id";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":lesson_id", $lesson_id);
+        $stmt->bindParam(":school_id", $school_id);
+        
+        if ($stmt->execute()) {
+            $db->commit();
+            return ['success' => true, 'message' => 'Lesson deleted successfully'];
+        } else {
+            $db->rollBack();
+            return ['success' => false, 'message' => 'Failed to delete lesson'];
+        }
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        return ['success' => false, 'message' => $e->getMessage()];
+    }
+}
+
+// Fetch initial data for the page
+try {
+    $check_table_query = "SHOW TABLES LIKE 'tbllessons'";
+    $table_exists = $db->query($check_table_query)->rowCount() > 0;
+    
+    if (!$table_exists) {
+        $create_lessons_table = "CREATE TABLE tbllessons (
+            id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            subject_id INT(11) NOT NULL,
+            class_id INT(11) NOT NULL,
+            stream_id INT(11) DEFAULT NULL,
+            teacher_id INT(11) NOT NULL,
+            school_id INT(11) NOT NULL,
+            created_by INT(11) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (subject_id) REFERENCES tblsubjects(id),
+            FOREIGN KEY (class_id) REFERENCES tblclasses(id),
+            FOREIGN KEY (stream_id) REFERENCES tblstreams(id),
+            FOREIGN KEY (teacher_id) REFERENCES tblteachers(id),
+            FOREIGN KEY (school_id) REFERENCES tblschoolinfo(id)
+        )";
+        $db->exec($create_lessons_table);
+        
+        $create_lesson_students_table = "CREATE TABLE tbllesson_students (
+            id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            lesson_id INT(11) NOT NULL,
+            student_id INT(11) NOT NULL,
+            school_id INT(11) NOT NULL,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lesson_id) REFERENCES tbllessons(id) ON DELETE CASCADE,
+            FOREIGN KEY (student_id) REFERENCES tblstudents(id),
+            FOREIGN KEY (school_id) REFERENCES tblschoolinfo(id),
+            UNIQUE KEY unique_lesson_student (lesson_id, student_id)
+        )";
+        $db->exec($create_lesson_students_table);
+    }
+    
+    $teachers_query = "SELECT id, firstname, lastname FROM tblteachers WHERE school_id = :school_id ORDER BY firstname, lastname";
+    $teachers_stmt = $db->prepare($teachers_query);
+    $teachers_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+    $teachers_stmt->execute();
+    $teachers = $teachers_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $subjects_query = "SELECT s.id, s.subject_name, c.class_level 
+                      FROM tblsubjects s 
+                      JOIN tblclasses c ON s.class_id = c.id 
+                      WHERE s.school_id = :school_id 
+                      ORDER BY c.class_level, s.subject_name";
+    $subjects_stmt = $db->prepare($subjects_query);
+    $subjects_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+    $subjects_stmt->execute();
+    $subjects = $subjects_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $streams_query = "SELECT id, stream_name, class_id FROM tblstreams WHERE school_id = :school_id ORDER BY stream_name";
+    $streams_stmt = $db->prepare($streams_query);
+    $streams_stmt->bindParam(":school_id", $school_id, PDO::PARAM_INT);
+    $streams_stmt->execute();
+    $streams = $streams_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Fetch stats data
+    $stats_query = "SELECT 
+        (SELECT COUNT(*) FROM tbllessons WHERE school_id = :school_id1) as total_lessons,
+        (SELECT COUNT(DISTINCT teacher_id) FROM tbllessons WHERE school_id = :school_id2 AND teacher_id IS NOT NULL) as assigned_teachers,
+        (SELECT COUNT(DISTINCT student_id) FROM tbllesson_students WHERE school_id = :school_id3) as total_students";
+    
+    $stats_stmt = $db->prepare($stats_query);
+    $stats_stmt->bindParam(":school_id1", $school_id);
+    $stats_stmt->bindParam(":school_id2", $school_id);
+    $stats_stmt->bindParam(":school_id3", $school_id);
+    $stats_stmt->execute();
+    $stats = $stats_stmt->fetch(PDO::FETCH_ASSOC);
+    
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $limit = 10;
+    $offset = ($page - 1) * $limit;
+    
+    $class_filter = isset($_GET['class_filter']) ? intval($_GET['class_filter']) : '';
+    
+    $lessons_query = "SELECT l.id, s.subject_name, c.class_level, st.stream_name,
+                     CONCAT(t.firstname, ' ', t.lastname) as teacher_name,
+                     (SELECT COUNT(*) FROM tbllesson_students ls WHERE ls.lesson_id = l.id) as student_count
+                     FROM tbllessons l 
+                     JOIN tblsubjects s ON l.subject_id = s.id 
+                     JOIN tblclasses c ON l.class_id = c.id 
+                     LEFT JOIN tblstreams st ON l.stream_id = st.id
+                     LEFT JOIN tblteachers t ON l.teacher_id = t.id 
+                     WHERE l.school_id = :school_id";
+    
+    $count_query = "SELECT COUNT(*) FROM tbllessons l 
+                   JOIN tblsubjects s ON l.subject_id = s.id 
+                   JOIN tblclasses c ON l.class_id = c.id 
+                   WHERE l.school_id = :school_id";
+    
+    $params = [':school_id' => $school_id];
+    
+    if (!empty($class_filter)) {
+        $lessons_query .= " AND l.class_id = :class_filter";
+        $count_query .= " AND l.class_id = :class_filter";
+        $params[':class_filter'] = $class_filter;
+    }
+    
+    $lessons_query .= " ORDER BY c.class_level, s.subject_name LIMIT :limit OFFSET :offset";
+    
+    $count_stmt = $db->prepare($count_query);
+    foreach ($params as $key => $value) {
+        if ($key !== ':limit' && $key !== ':offset') {
+            $count_stmt->bindValue($key, $value);
+        }
+    }
+    $count_stmt->execute();
+    $total_lessons = $count_stmt->fetchColumn();
+    $total_pages = ceil($total_lessons / $limit);
+    
+    $params[':limit'] = $limit;
+    $params[':offset'] = $offset;
+    
+    $lessons_stmt = $db->prepare($lessons_query);
+    foreach ($params as $key => $value) {
+        $lessons_stmt->bindValue($key, $value, $key === ':limit' || $key === ':offset' ? PDO::PARAM_INT : PDO::PARAM_STR);
+    }
+    $lessons_stmt->execute();
+    $lessons = $lessons_stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+} catch (PDOException $e) {
+    error_log("Lessons page data fetch error: " . $e->getMessage());
+    $lessons = [];
+    $teachers = [];
+    $subjects = [];
+    $streams = [];
+    $total_lessons = 0;
+    $total_pages = 1;
+    $stats = ['total_lessons' => 0, 'assigned_teachers' => 0, 'total_students' => 0];
+}
+?>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduScore - Lessons Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="images/logo.png" />
+    <link rel="apple-touch-icon" href="images/logo.png">
+    <link rel="stylesheet" href="assets/banner/banner.css">
+    <style>
+        :root {
+            --primary-blue: #1e3a8a;
+            --secondary-blue: #2563eb;
+            --light-blue: #dbeafe;
+            --accent-yellow: #fbbf24;
+            --dark-blue: #1e3a8a;
+            --success-green: #10b981;
+            --warning-orange: #f59e0b;
+            --error-red: #ef4444;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --border-radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            padding: 100px 2rem 2rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+                padding: 100px 1rem 1rem;
+            }
+        }
+
+        /* Page Header */
+        .page-header {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary-blue);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-yellow), transparent);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .lessons-page-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .lessons-page-title i {
+            color: var(--primary-blue);
+        }
+
+        .page-description {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        /* Role Badge */
+        .role-badge {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            box-shadow: var(--shadow);
+        }
+
+        .role-badge i {
+            font-size: 0.9rem;
+        }
+
+        /* Permission Denied */
+        .permission-denied {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--error-red);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin: 2rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .permission-denied i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .permission-denied h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .permission-denied p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--transition);
+            border-top: 3px solid var(--primary-blue);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.total { background: var(--light-blue); color: var(--primary-blue); }
+        .stat-icon.active { background: #d1fae5; color: var(--success-green); }
+        .stat-icon.inactive { background: #fef3c7; color: var(--warning-orange); }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+            background: var(--bg-white);
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .lessons-search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+            min-width: 250px;
+        }
+
+        .lessons-search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            background: var(--bg-white);
+        }
+
+        .lessons-search-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .lessons-search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--secondary-blue);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-green), #059669);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: var(--bg-white);
+            padding: 10px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            background: var(--bg-light);
+            color: var(--text-light);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+        }
+
+        .tab-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .tab-button:hover:not(:disabled) {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Filter Selects */
+        .filter-selects {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-selects label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .filter-selects select {
+            width: 200px;
+            padding: 10px 14px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background: var(--bg-white);
+            color: var(--text-dark);
+            font-weight: 500;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .filter-selects select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 10px var(--primary-blue), var(--shadow);
+        }
+
+        .filter-selects select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Lessons Table */
+        .lessons-table-container {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .lessons-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        .lessons-table th {
+            background: var(--primary-blue);
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-weight: 600;
+            color: white;
+            border-bottom: 2px solid var(--accent-yellow);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lessons-table th i {
+            margin-right: 0.5rem;
+        }
+
+        .lessons-table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .lessons-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .lessons-table tr:hover {
+            background: var(--bg-light);
+        }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn-small {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .action-btn-small:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .edit-btn {
+            background: var(--light-blue);
+            color: var(--primary-blue);
+        }
+
+        .edit-btn:hover:not(:disabled) {
+            background: var(--secondary-blue);
+            color: white;
+        }
+
+        .delete-btn {
+            background: #fef2f2;
+            color: var(--error-red);
+        }
+
+        .delete-btn:hover:not(:disabled) {
+            background: var(--error-red);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-light);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+            color: var(--primary-blue);
+        }
+
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .empty-state p {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .pagination button.active {
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            color: white;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+            border-top: 4px solid var(--accent-yellow);
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .close-modal {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            font-size: 1.25rem;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: var(--transition);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .close-modal:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-label.required::after {
+            content: '*';
+            color: var(--error-red);
+            margin-left: 0.25rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            background: var(--bg-white);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-control:disabled {
+            background: var(--bg-light);
+            cursor: not-allowed;
+        }
+
+        .form-control.form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.75rem center;
+            background-repeat: no-repeat;
+            background-size: 16px 12px;
+            padding-right: 2.5rem;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        .readonly-input {
+            background: var(--bg-light);
+            color: var(--text-light);
+            cursor: not-allowed;
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        /* Multi-select Styling */
+        .multi-select-container {
+            position: relative;
+        }
+
+        .multi-select-button {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background: var(--bg-white);
+            color: var(--text-dark);
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .multi-select-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--bg-light);
+        }
+
+        .multi-select-button:hover:not(:disabled) {
+            border-color: var(--primary-blue);
+        }
+
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-top: 0.25rem;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .multi-select-dropdown.show {
+            display: block;
+        }
+
+        .multi-select-option {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .multi-select-option:hover {
+            background: var(--bg-light);
+        }
+
+        .multi-select-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .multi-select-checkbox.checked {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+        }
+
+        .multi-select-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .multi-select-count {
+            background: var(--primary-blue);
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
+
+        /* Assign All Container */
+        .assign-all-container {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: var(--bg-light);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .assign-all-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            cursor: pointer;
+        }
+
+        .assign-all-checkbox input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .student-count {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: var(--light-blue);
+            border-radius: var(--border-radius);
+            color: var(--primary-blue);
+            font-size: 0.9rem;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            z-index: 3000;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-lg);
+            border-left: 4px solid var(--success-green);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideInRight 0.3s ease;
+        }
+
+        .toast.error {
+            border-left-color: var(--error-red);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning-orange);
+        }
+
+        .toast.info {
+            border-left-color: var(--secondary-blue);
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .toast.success .toast-icon {
+            background: var(--success-green);
+        }
+
+        .toast.error .toast-icon {
+            background: var(--error-red);
+        }
+
+        .toast.warning .toast-icon {
+            background: var(--warning-orange);
+        }
+
+        .toast.info .toast-icon {
+            background: var(--secondary-blue);
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-message {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        /* Loading Spinner */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .modern-spinner {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 2rem;
+        }
+
+        .spinner-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .spinner-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            animation: rotate 2s linear infinite;
+        }
+
+        .spinner-ring:nth-child(1) {
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-top-color: var(--primary-blue);
+            animation-delay: 0s;
+            animation-duration: 2s;
+        }
+
+        .spinner-ring:nth-child(2) {
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            border-top-color: var(--secondary-blue);
+            animation-delay: 0.1s;
+            animation-duration: 1.8s;
+        }
+
+        .spinner-ring:nth-child(3) {
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border-top-color: var(--accent-yellow);
+            animation-delay: 0.2s;
+            animation-duration: 1.6s;
+        }
+
+        .spinner-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.2);
+        }
+
+        .loading-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.75rem;
+        }
+
+        .loading-text {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+
+
+        /* Students Table - Improved with Light Blue Theme */
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .student-table th {
+            background: var(--primary-blue);
+            padding: 1rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: white;
+            border-bottom: 2px solid var(--accent-yellow);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .student-table th.subject-column {
+            background: var(--secondary-blue);
+            border-bottom: 2px solid var(--accent-yellow);
+            text-align: center;
+            color: white;
+        }
+
+        .student-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .student-table tr:hover {
+            background: var(--light-blue);
+        }
+
+        .student-table td.subject-cell {
+            text-align: center;
+            padding: 0.5rem;
+        }
+
+        /* Student Checkbox - Modern Light Blue Style */
+        .student-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            border: 2px solid var(--primary-blue);
+            border-radius: 4px;
+            transition: var(--transition);
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background: white;
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .student-checkbox:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--bg-light);
+        }
+
+        .student-checkbox:checked {
+            background-color: var(--success-green);
+            border-color: var(--success-green);
+        }
+
+        .student-checkbox:checked::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .student-checkbox:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.2);
+        }
+
+        /* Loading state for checkbox */
+        .student-checkbox.loading {
+            opacity: 0.5;
+            cursor: wait;
+            background: var(--text-light);
+        }
+
+        /* Empty state for students tab */
+        .empty-state-students {
+            text-align: center;
+            padding: 3rem;
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin: 1rem 0;
+        }
+
+        .empty-state-students i {
+            font-size: 3rem;
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-students h3 {
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state-students p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* Student Table Container */
+        .students-table-container {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .table-responsive-students {
+            overflow-x: auto;
+        }
+
+        /* Student Name Cell Styling */
+        .student-name-cell {
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        .admission-cell {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+        }
+
+        /* Subject Header Tooltip */
+        .subject-column {
+            position: relative;
+            cursor: help;
+        }
+
+        .subject-column:hover::after {
+            content: attr(data-subject);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-blue);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .student-table th,
+            .student-table td {
+                padding: 0.5rem;
+                font-size: 0.85rem;
+            }
+            
+            .student-checkbox {
+                width: 18px;
+                height: 18px;
+            }
+            
+            .empty-state-students {
+                padding: 2rem;
+            }
+            
+            .empty-state-students i {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .student-table th,
+            .student-table td {
+                padding: 0.4rem;
+                font-size: 0.8rem;
+            }
+            
+            .student-checkbox {
+                width: 16px;
+                height: 16px;
+            }
+        }
+
+
+        /* Animations */
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 100px 1rem 1rem;
+            }
+
+            .page-header {
+                padding: 1.5rem;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-selects {
+                flex-direction: column;
+            }
+
+            .filter-selects select {
+                width: 100%;
+            }
+
+            .modal {
+                max-width: 95%;
+                margin: 1rem;
+            }
+
+            .modal-header,
+            .modal-body,
+            .modal-footer {
+                padding: 1.25rem;
+            }
+
+            .toast-container {
+                right: 1rem;
+                left: 1rem;
+                max-width: none;
+            }
+        }
+        
+        .stat-value .fa-spinner {
+            font-size: 0.8em;
+            color: var(--text-light);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <?php 
+    if (!isset($school)) {
+        $stmt = $db->prepare("SELECT * FROM tblschoolinfo WHERE id = :school_id");
+        $stmt->bindParam(":school_id", $_SESSION['school_id'], PDO::PARAM_INT);
+        $stmt->execute();
+        $school = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    include 'trial_banner.php'; 
+    ?>
+    
+    <!-- Include Header -->
+    <?php include 'includes/header.php'; ?>
+
+    <!-- Include Sidebar -->
+    <?php include 'includes/sidebar.php'; ?>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="lessons-page-title">
+                    <i class="fas fa-book-open"></i>
+                    Lessons Management
+                </h1>
+                <span class="role-badge">
+                    <i class="fas fa-<?php echo $isSuperAdmin ? 'crown' : 'user-tag'; ?>"></i>
+                    <?php echo htmlspecialchars($currentUserRole ?? 'User'); ?>
+                </span>
+            </div>
+            <p class="page-description">Manage lesson assignments, student enrollments, and teaching schedules</p>
+        </div>
+
+        <?php if (!$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll'])): ?>
+            <!-- Permission Denied -->
+            <div class="permission-denied">
+                <i class="fas fa-lock"></i>
+                <h3>Access Denied</h3>
+                <p>You do not have permission to view lessons.</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Please contact your system administrator if you need access.</p>
+            </div>
+        <?php else: ?>
+
+        <!-- Stats Cards -->
+        <div class="stats-container" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalLessons"><?php echo $stats['total_lessons'] ?? 0; ?></div>
+                    <div class="stat-label">Total Lessons</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon active">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value" id="assignedTeachers"><?php echo $stats['assigned_teachers'] ?? 0; ?></div>
+                    <div class="stat-label">Assigned Teachers</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon inactive">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalStudents"><?php echo $stats['total_students'] ?? 0; ?></div>
+                    <div class="stat-label">Enrolled Students</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <div class="lessons-search-box">
+                <i class="fas fa-search lessons-search-icon"></i>
+                <input type="text" class="lessons-search-input" id="searchInput" placeholder="Search lessons by subject, class, or teacher...">
+            </div>
+            <div class="action-buttons">
+                <?php if ($canCreate): ?>
+                    <button class="btn btn-primary" id="addLessonBtn">
+                        <i class="fas fa-plus"></i>
+                        Assign Lesson
+                    </button>
+                
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="lessons-tab" <?php echo !$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll']) ? 'disabled' : ''; ?>>
+                <i class="fas fa-book"></i> Lessons
+            </button>
+            <button class="tab-button" data-tab="students-tab" <?php echo !$permissionHelper->hasAnyPermission(['lessonsView', 'lessonsViewAll', 'studentsView']) ? 'disabled' : ''; ?>>
+                <i class="fas fa-users"></i> Students
+            </button>
+        </div>
+
+        <!-- Lessons Tab -->
+        <div id="lessons-tab" class="tab-content active">
+            <div class="filter-selects">
+                <div>
+                    <label for="academicLevelFilter">Academic Level</label>
+                    <select class="filter-select" id="academicLevelFilter">
+                        <option value="Primary" <?php echo $current_level === 'Primary' ? 'selected' : ''; ?>>Primary</option>
+                        <option value="Junior Secondary" <?php echo $current_level === 'Junior Secondary' ? 'selected' : ''; ?>>Junior Secondary</option>
+                        <option value="Secondary" <?php echo $current_level === 'Secondary' ? 'selected' : ''; ?>>Secondary</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="classFilter">Filter by Class</label>
+                    <select class="filter-select" id="classFilter" disabled>
+                        <option value="">-- Loading classes... --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="lessons-table-container">
+                <div class="table-responsive">
+                    <table class="lessons-table" id="lessonsTable">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-book"></i> Subject</th>
+                                <th><i class="fas fa-graduation-cap"></i> Class</th>
+                                <th><i class="fas fa-stream"></i> Stream</th>
+                                <th><i class="fas fa-chalkboard-teacher"></i> Teacher</th>
+                                <th><i class="fas fa-users"></i> Students</th>
+                                <th><i class="fas fa-cogs"></i> Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lessonsTableBody">
+                            <?php if (!empty($lessons)):   foreach ($lessons as $lesson): ?>
+                                    <tr data-lesson-id="<?php echo $lesson['id']; ?>">
+                                        <td><?php echo htmlspecialchars($lesson['subject_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($lesson['class_level']); ?></td>
+                                        <td><?php echo htmlspecialchars($lesson['stream_name'] ?? 'N/A'); ?></td>
+                                        <td><?php echo htmlspecialchars($lesson['teacher_name'] ?? 'Not Assigned'); ?></td>
+                                        <td><?php echo htmlspecialchars($lesson['student_count']); ?></td>
+                                        <td>
+                                            <div class="actions">
+                                                <?php if ($canEdit): ?>
+                                                    <button class="action-btn-small edit-btn" onclick="editLesson(<?php echo $lesson['id']; ?>)" title="Edit Lesson">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                
+                                                <?php if ($canDelete): ?>
+                                                    <button class="action-btn-small delete-btn" onclick="showDeleteModal(<?php echo $lesson['id']; ?>)" title="Delete Lesson">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach;   else: ?>
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="empty-state">
+                                            <i class="fas fa-book"></i>
+                                            <h3>No Lessons Found</h3>
+                                            <p>Get started by assigning your first lesson</p>
+                                            <?php if ($canCreate): ?>
+                                                <button class="btn btn-primary" onclick="openAddLessonModal()">
+                                                    <i class="fas fa-plus"></i> Assign Lesson
+                                                </button>
+                                            
+                                        </div>
+                                    </td>
+                                </tr>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+                <div class="pagination">
+                    <button class="btn btn-secondary" onclick="changePage(<?php echo max(1, $page - 1); ?>)" <?php echo $page <= 1 ? 'disabled' : ''; ?>>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    
+                    <span style="display: flex; gap: 5px;">
+                        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                            <button class="btn <?php echo $i === $page ? 'active' : ''; ?>" onclick="changePage(<?php echo $i; ?>)">
+                                <?php echo $i; ?>
+                            </button>
+                        <?php endfor; ?>
+                    </span>
+                    
+                    <button class="btn btn-secondary" onclick="changePage(<?php echo min($total_pages, $page + 1); ?>)" <?php echo $page >= $total_pages ? 'disabled' : ''; ?>>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            
+        </div>
+
+        <!-- Students Tab -->
+        <div id="students-tab" class="tab-content">
+            <div class="filter-selects">
+                <div>
+                    <label for="studentClassFilter">Class</label>
+                    <select class="filter-select" id="studentClassFilter">
+                        <option value="">Select Class</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="studentStreamFilter">Stream (Optional)</label>
+                    <select class="filter-select" id="studentStreamFilter" disabled>
+                        <option value="">Select Stream</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="lessons-table-container">
+                <div class="table-responsive">
+                    <table class="lessons-table student-table" id="studentsTable">
+                        <thead id="studentsTableHead">
+                            <tr>
+                                <th><i class="fas fa-user"></i> Student Name</th>
+                                <th><i class="fas fa-id-card"></i> Admission No</th>
+                                <!-- Subject columns will be added here dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr>
+                                <td colspan="2">
+                                    <div class="empty-state">
+                                        <i class="fas fa-users"></i>
+                                        <h3>No Data to Display</h3>
+                                        <p>Please select a class to view student assignments</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <?php if ($canCreate || $canEdit): ?>
+    <!-- Add/Edit Lesson Modal -->
+    <div class="modal-overlay" id="lessonModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-book"></i>
+                    <span id="modalTitle">Assign Lesson</span>
+                </h3>
+                <button class="close-modal" id="closeModal" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="lessonForm">
+                <div class="modal-body">
+                    <input type="hidden" id="lessonId" name="lesson_id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required" for="classSelect">Class</label>
+                            <select class="form-control form-select" id="classSelect" name="class_id" required <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                                <option value="">-- Loading classes... --</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="streamSelect">Stream</label>
+                            <select class="form-control form-select" id="streamSelect" name="stream_id" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                                <option value="">-- Select Stream (Optional) --</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required" for="subjectSelect">Subject(s)</label>
+                            <div class="multi-select-container" id="subjectMultiSelect">
+                                <button type="button" class="multi-select-button" id="subjectSelectButton" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                                    <span id="subjectButtonText">-- Select Subject(s) --</span>
+                                    <span id="subjectCountBadge" class="multi-select-count" style="display: none;">0</span>
+                                </button>
+                                <div class="multi-select-dropdown" id="subjectDropdown">
+                                    <div class="multi-select-option" data-value="">
+                                        <div class="multi-select-checkbox"></div>
+                                        <span class="multi-select-label">-- Select Subject(s) --</span>
+                                    </div>
+                                    <!-- Subjects will be loaded here dynamically -->
+                                </div>
+                                <input type="hidden" name="subject_ids" id="subjectIds" required>
+                            </div>
+                            <small class="form-text text-muted">Select one or multiple subjects</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label required" for="teacherSelect">Teacher</label>
+                            <select class="form-control form-select" id="teacherSelect" name="teacher_id" required <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                                <option value="">-- Select Teacher --</option>
+                                <?php foreach ($teachers as $teacher): ?>
+                                    <option value="<?php echo $teacher['id']; ?>">
+                                        <?php echo htmlspecialchars($teacher['firstname'] . ' ' . $teacher['lastname']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="assign-all-container">
+                        <label class="assign-all-checkbox">
+                            <input type="checkbox" id="assignAllStudents" name="assign_all_students" value="1" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                            <span>Assign all students in this class to the selected subject(s)</span>
+                        </label>
+                        <div class="student-count" id="studentCount">
+                            <i class="fas fa-users"></i>
+                            <span>Select class and stream (optional) to see student count</span>
+                        </div>
+                        <div class="student-selection-info" id="studentSelectionInfo" style="display: none; margin-top: 10px; font-size: 12px; color: #666;">
+                            <i class="fas fa-info-circle"></i>
+                            <span>When checked, all students in this class will be automatically assigned to the selected subject(s).</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="saveLessonBtn" <?php echo (!$canCreate && !$canEdit) ? 'disabled' : ''; ?>>
+                        <i class="fas fa-save"></i>
+                        <span id="saveBtnText">Assign Lesson</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+
+    <?php if ($canDelete): ?>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal delete-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Confirm Delete
+                </h3>
+                <button class="close-modal" id="closeDeleteModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this lesson assignment?</p>
+                <div class="delete-warning" style="background: #fef2f2; border: 1px solid #fecaca; color: var(--error-red); padding: 0.75rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i>
+                    This action will remove all student enrollments for this lesson.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fas fa-trash"></i> Delete Lesson
+                </button>
+            </div>
+        </div>
+    </div>
+    
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Global variables
+        let currentPage = <?php echo $page; ?>;
+        let editingLessonId = null;
+        let lessonToDeleteId = null;
+        let selectedSubjects = [];
+        let currentStudentAssignments = {};
+        let currentAcademicLevel = '<?php echo $current_level; ?>';
+        let isSubmitting = false;
+
+        // Permissions from PHP
+        const PERMISSIONS = {
+            canCreate: <?php echo $canCreate ? 'true' : 'false'; ?>,
+            canEdit: <?php echo $canEdit ? 'true' : 'false'; ?>,
+            canDelete: <?php echo $canDelete ? 'true' : 'false'; ?>,
+            canAssignStudents: <?php echo $canAssignStudents ? 'true' : 'false'; ?>,
+            canViewAll: <?php echo $canViewAll ? 'true' : 'false'; ?>,
+            isSuperAdmin: <?php echo $isSuperAdmin ? 'true' : 'false'; ?>
+        };
+
+        // DOM Elements
+        const addLessonBtn = document.getElementById('addLessonBtn');
+        const lessonModal = document.getElementById('lessonModal');
+        const deleteModal = document.getElementById('deleteModal');
+        const closeModalBtn = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveLessonBtn = document.getElementById('saveLessonBtn');
+        const saveBtnText = document.getElementById('saveBtnText');
+        const searchInput = document.getElementById('searchInput');
+        const lessonsTableBody = document.getElementById('lessonsTableBody');
+        const toastContainer = document.getElementById('toastContainer');
+        const academicLevelFilter = document.getElementById('academicLevelFilter');
+        const classFilter = document.getElementById('classFilter');
+        const classSelect = document.getElementById('classSelect');
+        const streamSelect = document.getElementById('streamSelect');
+        const teacherSelect = document.getElementById('teacherSelect');
+        const assignAllCheckbox = document.getElementById('assignAllStudents');
+        const studentCount = document.getElementById('studentCount');
+        const lessonForm = document.getElementById('lessonForm');
+        const subjectButton = document.getElementById('subjectSelectButton');
+        const subjectDropdown = document.getElementById('subjectDropdown');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const studentClassFilter = document.getElementById('studentClassFilter');
+        const studentStreamFilter = document.getElementById('studentStreamFilter');
+        const studentsTableHead = document.getElementById('studentsTableHead');
+        const studentsTableBody = document.getElementById('studentsTableBody');
+        const closeDeleteModal = document.getElementById('closeDeleteModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        // Toast Notification Function
+        function showToast(title, message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'check';
+            if (type === 'error') icon = 'exclamation-triangle';
+            if (type === 'warning') icon = 'exclamation-circle';
+            if (type === 'info') icon = 'info-circle';
+            
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // Loading States
+        function showLoading(button, text) {
+            const originalHTML = button.innerHTML;
+            button.dataset.originalHTML = originalHTML;
+            button.innerHTML = `
+                <div style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; margin-right: 8px;"></div>
+                ${text}
+            `;
+            button.disabled = true;
+        }
+        
+        function hideLoading(button) {
+            if (button.dataset.originalHTML) {
+                button.innerHTML = button.dataset.originalHTML;
+            }
+            button.disabled = false;
+        }
+
+        // Add CSS for spinner animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Check permission for action
+        function checkPermission(action) {
+            if (!PERMISSIONS[action] && !PERMISSIONS.isSuperAdmin) {
+                showToast('Access Denied', 'You do not have permission to perform this action', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        // Initialize multi-select
+        function initMultiSelect() {
+            if (!subjectButton) return;
+            
+            // Toggle dropdown
+            subjectButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (!this.disabled) {
+                    subjectButton.classList.toggle('open');
+                    subjectDropdown.classList.toggle('show');
+                }
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!subjectButton.contains(e.target) && !subjectDropdown.contains(e.target)) {
+                    subjectButton.classList.remove('open');
+                    subjectDropdown.classList.remove('show');
+                }
+            });
+            
+            // Handle option selection
+            subjectDropdown.addEventListener('click', function(e) {
+                const option = e.target.closest('.multi-select-option');
+                if (!option) return;
+                
+                const value = option.getAttribute('data-value');
+                
+                if (value === '') {
+                    selectedSubjects = [];
+                    updateSubjectSelection();
+                } else {
+                    const index = selectedSubjects.indexOf(value);
+                    if (index === -1) {
+                        selectedSubjects.push(value);
+                    } else {
+                        selectedSubjects.splice(index, 1);
+                    }
+                    updateSubjectSelection();
+                }
+            });
+        }
+
+        function updateSubjectSelection() {
+            const subjectButtonText = document.getElementById('subjectButtonText');
+            const subjectCountBadge = document.getElementById('subjectCountBadge');
+            const subjectIdsInput = document.getElementById('subjectIds');
+            
+            if (subjectIdsInput) {
+                subjectIdsInput.value = selectedSubjects.join(',');
+            }
+            
+            if (selectedSubjects.length === 0) {
+                subjectButtonText.textContent = '-- Select Subject(s) --';
+                if (subjectCountBadge) {
+                    subjectCountBadge.style.display = 'none';
+                }
+            } else {
+                const selectedSubjectNames = Array.from(subjectDropdown.querySelectorAll('.multi-select-option'))
+                    .filter(option => {
+                        const value = option.getAttribute('data-value');
+                        return value && selectedSubjects.includes(value);
+                    })
+                    .map(option => option.querySelector('.multi-select-label').textContent);
+                
+                if (selectedSubjectNames.length === 1) {
+                    subjectButtonText.textContent = selectedSubjectNames[0];
+                } else {
+                    subjectButtonText.textContent = `${selectedSubjectNames.length} subjects selected`;
+                }
+                
+                if (subjectCountBadge) {
+                    subjectCountBadge.textContent = selectedSubjects.length;
+                    subjectCountBadge.style.display = 'inline-block';
+                }
+            }
+            
+            subjectDropdown.querySelectorAll('.multi-select-option').forEach(option => {
+                const value = option.getAttribute('data-value');
+                const checkbox = option.querySelector('.multi-select-checkbox');
+                
+                if (value && selectedSubjects.includes(value)) {
+                    checkbox.classList.add('checked');
+                } else {
+                    checkbox.classList.remove('checked');
+                }
+            });
+        }
+
+        // Function to update stats without page reload
+        function updateStats() {
+            if (!PERMISSIONS.canViewAll && !PERMISSIONS.isSuperAdmin) return;
+            
+            const totalLessonsEl = document.getElementById('totalLessons');
+            const assignedTeachersEl = document.getElementById('assignedTeachers');
+            const totalStudentsEl = document.getElementById('totalStudents');
+            
+            // Show loading state
+            if (totalLessonsEl) totalLessonsEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            if (assignedTeachersEl) assignedTeachersEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            if (totalStudentsEl) totalStudentsEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=get_lessons_stats'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const stats = data.stats;
+                    
+                    // Animate the number updates
+                    animateNumber(totalLessonsEl, stats.total_lessons);
+                    animateNumber(assignedTeachersEl, stats.assigned_teachers);
+                    animateNumber(totalStudentsEl, stats.total_students);
+                } else {
+                    // Restore original values if error
+                    if (totalLessonsEl) totalLessonsEl.textContent = '0';
+                    if (assignedTeachersEl) assignedTeachersEl.textContent = '0';
+                    if (totalStudentsEl) totalStudentsEl.textContent = '0';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching stats:', error);
+                // Restore original values if error
+                if (totalLessonsEl) totalLessonsEl.textContent = '0';
+                if (assignedTeachersEl) assignedTeachersEl.textContent = '0';
+                if (totalStudentsEl) totalStudentsEl.textContent = '0';
+            });
+        }
+
+        // Helper function for smooth number animation
+        function animateNumber(element, targetValue) {
+            if (!element) return;
+            
+            const currentValue = parseInt(element.textContent) || 0;
+            const duration = 500; // Animation duration in milliseconds
+            const steps = 20;
+            const increment = (targetValue - currentValue) / steps;
+            let currentStep = 0;
+            
+            const timer = setInterval(() => {
+                currentStep++;
+                if (currentStep >= steps) {
+                    element.textContent = targetValue.toLocaleString();
+                    clearInterval(timer);
+                } else {
+                    const value = Math.round(currentValue + (increment * currentStep));
+                    element.textContent = value.toLocaleString();
+                }
+            }, duration / steps);
+        }
+
+        // Load classes based on academic level
+        function loadClasses(academicLevel, targetElement, selectedClassId = null, callback = null) {
+            if (!targetElement) return;
+            
+            targetElement.disabled = true;
+            targetElement.innerHTML = '<option value="">-- Loading classes... --</option>';
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_classes_by_level&academic_level=${encodeURIComponent(academicLevel)}`
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.classes && data.classes.length > 0) {
+                    targetElement.innerHTML = '<option value="">-- Select Class --</option>';
+                    data.classes.forEach(cls => {
+                        const option = document.createElement('option');
+                        option.value = cls.id;
+                        option.textContent = cls.class_level;
+                        if (selectedClassId && cls.id == selectedClassId) {
+                            option.selected = true;
+                        }
+                        targetElement.appendChild(option);
+                    });
+                    targetElement.disabled = false;
+                    
+                    if (callback) {
+                        callback();
+                    }
+                } else {
+                    targetElement.innerHTML = '<option value="">-- No classes found --</option>';
+                    showToast('No classes found for this academic level', 'warning');
+                    if (callback) callback();
+                }
+            })
+            .catch(error => {
+                targetElement.innerHTML = '<option value="">-- Error loading classes --</option>';
+                showToast('Failed to load classes', 'error');
+                if (callback) callback();
+            });
+        }
+
+        // Load subjects into multi-select dropdown
+        function loadSubjects(classId, streamId) {
+            if (!subjectDropdown) return;
+            
+            subjectDropdown.innerHTML = `
+                <div class="multi-select-option" data-value="">
+                    <div class="multi-select-checkbox"></div>
+                    <span class="multi-select-label">-- Select Subject(s) --</span>
+                </div>
+            `;
+            
+            selectedSubjects = [];
+            updateSubjectSelection();
+            
+            if (!classId) {
+                if (subjectButton) subjectButton.disabled = true;
+                return;
+            }
+            
+            if (subjectButton) subjectButton.disabled = false;
+            const streamParam = streamId === '' || streamId === null ? '' : streamId;
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_subjects_by_class_stream&class_id=${classId}&stream_id=${streamParam}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.subjects && data.subjects.length > 0) {
+                    data.subjects.forEach(subject => {
+                        const option = document.createElement('div');
+                        option.className = 'multi-select-option';
+                        option.setAttribute('data-value', subject.id);
+                        option.innerHTML = `
+                            <div class="multi-select-checkbox"></div>
+                            <span class="multi-select-label">${escapeHtml(subject.subject_name)}</span>
+                        `;
+                        subjectDropdown.appendChild(option);
+                    });
+                } else if (data.success && (!data.subjects || data.subjects.length === 0)) {
+                    const option = document.createElement('div');
+                    option.className = 'multi-select-option';
+                    option.setAttribute('data-value', '');
+                    option.innerHTML = `
+                        <div class="multi-select-checkbox"></div>
+                        <span class="multi-select-label">No subjects found for this class/stream</span>
+                    `;
+                    option.style.opacity = '0.5';
+                    option.style.cursor = 'not-allowed';
+                    subjectDropdown.appendChild(option);
+                    if (subjectButton) subjectButton.disabled = true;
+                }
+            })
+            .catch(error => {
+                const option = document.createElement('div');
+                option.className = 'multi-select-option';
+                option.setAttribute('data-value', '');
+                option.innerHTML = `
+                    <div class="multi-select-checkbox"></div>
+                    <span class="multi-select-label">Error loading subjects</span>
+                `;
+                option.style.opacity = '0.5';
+                option.style.cursor = 'not-allowed';
+                subjectDropdown.appendChild(option);
+                if (subjectButton) subjectButton.disabled = true;
+            });
+        }
+
+        // Modal Functions
+        function openAddLessonModal() {
+            if (!checkPermission('canCreate')) return;
+            
+            document.getElementById('modalTitle').textContent = 'Assign Lesson';
+            saveBtnText.textContent = 'Assign Lesson';
+            
+            lessonForm.reset();
+            document.getElementById('lessonId').value = '';
+            editingLessonId = null;
+            
+            if (streamSelect) {
+                streamSelect.innerHTML = '<option value="">-- Select Stream (Optional) --</option>';
+                streamSelect.disabled = true;
+            }
+            
+            selectedSubjects = [];
+            updateSubjectSelection();
+            
+            if (studentCount) {
+                studentCount.innerHTML = '<i class="fas fa-users"></i><span>Select class and stream (optional) to see student count</span>';
+            }
+            
+            if (assignAllCheckbox) {
+                assignAllCheckbox.disabled = true;
+                assignAllCheckbox.checked = false;
+            }
+            
+            const studentSelectionInfo = document.getElementById('studentSelectionInfo');
+            if (studentSelectionInfo) studentSelectionInfo.style.display = 'none';
+            
+            if (saveLessonBtn) saveLessonBtn.disabled = false;
+            
+            loadClasses(currentAcademicLevel, classSelect, null, function() {
+                classSelect.disabled = false;
+            });
+            
+            lessonModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function editLesson(lessonId) {
+            if (!checkPermission('canEdit')) return;
+            
+            editingLessonId = lessonId;
+            
+            showLoading(saveLessonBtn, 'Loading...');
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_lesson&lesson_id=${lessonId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lesson = data.lesson;
+                    
+                    document.getElementById('modalTitle').textContent = 'Edit Lesson';
+                    saveBtnText.textContent = 'Update Lesson';
+                    document.getElementById('lessonId').value = lesson.id;
+                    
+                    loadClasses(currentAcademicLevel, classSelect, lesson.class_id, function() {
+                        if (teacherSelect) teacherSelect.value = lesson.teacher_id;
+                        loadStreams(lesson.class_id, lesson.stream_id);
+                        
+                        selectedSubjects = [lesson.subject_id.toString()];
+                        
+                        if (assignAllCheckbox && PERMISSIONS.canAssignStudents) {
+                            const hasAssignments = lesson.assigned_students && lesson.assigned_students.length > 0;
+                            assignAllCheckbox.checked = hasAssignments;
+                        }
+                        
+                        setTimeout(() => {
+                            loadSubjects(lesson.class_id, lesson.stream_id || '');
+                            updateSubjectSelection();
+                            updateStudentCount(lesson.class_id, lesson.stream_id || '');
+                        }, 500);
+                        
+                        hideLoading(saveLessonBtn);
+                    });
+                    
+                    lessonModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    showToast('Error', data.message, 'error');
+                    hideLoading(saveLessonBtn);
+                }
+            })
+            .catch(error => {
+                showToast('Error', 'Failed to load lesson data', 'error');
+                hideLoading(saveLessonBtn);
+            });
+        }
+
+        function showDeleteModal(lessonId) {
+            if (!checkPermission('canDelete')) return;
+            
+            lessonToDeleteId = lessonId;
+            deleteModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModals() {
+            lessonModal.classList.remove('active');
+            deleteModal.classList.remove('active');
+            if (subjectButton) subjectButton.classList.remove('open');
+            if (subjectDropdown) subjectDropdown.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Form Handling Functions
+        function handleClassChange() {
+            const classId = classSelect.value;
+            
+            if (streamSelect) {
+                streamSelect.innerHTML = '<option value="">-- Select Stream (Optional) --</option>';
+                streamSelect.disabled = !classId;
+            }
+            
+            selectedSubjects = [];
+            updateSubjectSelection();
+            
+            if (subjectDropdown) {
+                subjectDropdown.innerHTML = `
+                    <div class="multi-select-option" data-value="">
+                        <div class="multi-select-checkbox"></div>
+                        <span class="multi-select-label">-- Select Subject(s) --</span>
+                    </div>
+                `;
+            }
+            
+            if (assignAllCheckbox && PERMISSIONS.canAssignStudents) {
+                assignAllCheckbox.disabled = !classId;
+                assignAllCheckbox.checked = false;
+            }
+            
+            if (saveLessonBtn) saveLessonBtn.disabled = !classId;
+            
+            if (classId) {
+                loadStreams(classId);
+                loadSubjects(classId, '');
+                updateStudentCount(classId, '');
+                const studentSelectionInfo = document.getElementById('studentSelectionInfo');
+                if (studentSelectionInfo && PERMISSIONS.canAssignStudents) studentSelectionInfo.style.display = 'flex';
+            } else {
+                if (studentCount) {
+                    studentCount.innerHTML = '<i class="fas fa-users"></i><span>Select class and stream (optional) to see student count</span>';
+                }
+                const studentSelectionInfo = document.getElementById('studentSelectionInfo');
+                if (studentSelectionInfo) studentSelectionInfo.style.display = 'none';
+            }
+        }
+
+        function handleStreamChange() {
+            const classId = classSelect.value;
+            const streamId = streamSelect.value || '';
+            
+            if (classId) {
+                loadSubjects(classId, streamId);
+                updateStudentCount(classId, streamId);
+                if (assignAllCheckbox) assignAllCheckbox.checked = false;
+            } else {
+                if (studentCount) {
+                    studentCount.innerHTML = '<i class="fas fa-users"></i><span>Select class and stream (optional) to see student count</span>';
+                }
+            }
+        }
+
+        function loadStreams(classId, selectedStreamId = null) {
+            if (!streamSelect || !classId) return;
+            
+            streamSelect.innerHTML = '<option value="">-- Select Stream (Optional) --</option>';
+            streamSelect.disabled = false;
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_streams_by_class&class_id=${classId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.streams && data.streams.length > 0) {
+                        data.streams.forEach(stream => {
+                            const option = document.createElement('option');
+                            option.value = stream.id;
+                            option.textContent = stream.stream_name;
+                            if (selectedStreamId && stream.id == selectedStreamId) {
+                                option.selected = true;
+                            }
+                            streamSelect.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No streams available';
+                        option.disabled = true;
+                        streamSelect.appendChild(option);
+                    }
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Error loading streams';
+                    option.disabled = true;
+                    streamSelect.appendChild(option);
+                }
+            })
+            .catch(error => {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Error loading streams';
+                option.disabled = true;
+                streamSelect.appendChild(option);
+            });
+        }
+
+        function updateStudentCount(classId, streamId) {
+            if (!studentCount || !classId) {
+                if (studentCount) {
+                    studentCount.innerHTML = '<i class="fas fa-users"></i><span>Select class and stream (optional) to see student count</span>';
+                }
+                if (assignAllCheckbox) assignAllCheckbox.disabled = true;
+                return;
+            }
+            
+            studentCount.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading student count...</span>';
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_students_count_by_class&class_id=${classId}&stream_id=${streamId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const studentCountText = `Total students in this class${streamId ? '/stream' : ''}: ${data.student_count}`;
+                    studentCount.innerHTML = `<i class="fas fa-users"></i><span>${studentCountText}</span>`;
+                    
+                    if (assignAllCheckbox && PERMISSIONS.canAssignStudents) {
+                        assignAllCheckbox.disabled = data.student_count === 0;
+                        
+                        if (data.student_count === 0) {
+                            assignAllCheckbox.checked = false;
+                            showToast('No students found in this class/stream. The "Assign all students" option is disabled.', 'warning');
+                        }
+                    }
+                } else {
+                    studentCount.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Error loading student count</span>';
+                    if (assignAllCheckbox) assignAllCheckbox.disabled = true;
+                }
+            })
+            .catch(error => {
+                studentCount.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Error loading student count</span>';
+                if (assignAllCheckbox) assignAllCheckbox.disabled = true;
+            });
+        }
+
+        // Form Validation and Submission
+        function validateLessonForm() {
+            const classId = classSelect.value;
+            const teacherId = teacherSelect.value;
+            
+            if (!classId) {
+                showToast('Warning', 'Please select a class', 'warning');
+                return false;
+            }
+            
+            if (!teacherId) {
+                showToast('Warning', 'Please select a teacher', 'warning');
+                return false;
+            }
+            
+            if (selectedSubjects.length === 0) {
+                showToast('Warning', 'Please select at least one subject', 'warning');
+                return false;
+            }
+            
+            if (assignAllCheckbox && assignAllCheckbox.checked && assignAllCheckbox.disabled) {
+                showToast('Warning', 'Cannot assign all students: No students found in this class/stream', 'warning');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function saveLesson() {
+            if (isSubmitting) return;
+            
+            const isEdit = editingLessonId !== null;
+            if (isEdit && !checkPermission('canEdit')) return;
+            if (!isEdit && !checkPermission('canCreate')) return;
+            
+            if (!validateLessonForm()) return;
+            
+            const formData = new FormData(lessonForm);
+            const action = isEdit ? 'update_lesson' : 'add_lesson';
+            
+            formData.append('action', action);
+            
+            const assignAllStudents = assignAllCheckbox && assignAllCheckbox.checked ? '1' : '0';
+            formData.append('assign_all_students', assignAllStudents);
+            
+            if (isEdit) {
+                formData.append('subject_id', selectedSubjects[0]);
+            } else {
+                formData.append('subject_ids', selectedSubjects.join(','));
+            }
+            
+            showLoading(saveLessonBtn, isEdit ? 'Updating...' : 'Saving...');
+            isSubmitting = true;
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                body: new URLSearchParams(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Success', data.message, 'success');
+                    closeModals();
+                    loadLessonsAjax();
+                    updateStats();
+                } else {
+                    showToast('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error', 'Failed to save lesson', 'error');
+            })
+            .finally(() => {
+                isSubmitting = false;
+                hideLoading(saveLessonBtn);
+            });
+        }
+
+        // Delete Lesson
+        function confirmDelete() {
+            if (!checkPermission('canDelete')) return;
+            if (isSubmitting) return;
+            
+            showLoading(confirmDeleteBtn, 'Deleting...');
+            isSubmitting = true;
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=delete_lesson&lesson_id=${lessonToDeleteId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Success', data.message, 'success');
+                    closeModals();
+                    loadLessonsAjax();
+                    updateStats();
+                } else {
+                    showToast('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error', 'Failed to delete lesson', 'error');
+            })
+            .finally(() => {
+                isSubmitting = false;
+                hideLoading(confirmDeleteBtn);
+            });
+        }
+
+        // AJAX Functions
+        function applyFiltersAjax() {
+            const classId = classFilter.value;
+            currentPage = 1;
+            loadLessonsAjax(classId);
+        }
+
+        function changePage(page) {
+            if (page < 1) return;
+            
+            const classId = classFilter ? classFilter.value : '';
+            currentPage = page;
+            loadLessonsAjax(classId, page);
+        }
+
+        function loadLessonsAjax(classId = '', page = 1) {
+            if (!lessonsTableBody) return;
+            
+            lessonsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6">
+                        <div class="loading-state">
+                            <div class="modern-spinner">
+                                <div class="spinner-container">
+                                    <div class="spinner-ring"></div>
+                                    <div class="spinner-ring"></div>
+                                    <div class="spinner-ring"></div>
+                                    <div class="spinner-center">
+                                        <i class="fas fa-book"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="loading-content">
+                                <h3 class="loading-title">Loading Lessons</h3>
+                                <p class="loading-text">Please wait while we fetch lesson information...</p>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            const formData = new FormData();
+            formData.append('action', 'get_lessons_ajax');
+            formData.append('page', page);
+            if (classId) {
+                formData.append('class_filter', classId);
+            }
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    lessonsTableBody.innerHTML = data.html;
+                    updateURL(classId, page);
+                } else {
+                    showToast('Error', 'Failed to load lessons', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error', 'Failed to load lessons', 'error');
+            });
+        }
+
+        function updateURL(classId, page) {
+            let url = `lessons.php?page=${page}`;
+            if (classId) url += `&class_filter=${classId}`;
+            window.history.pushState({ class_filter: classId, page: page }, '', url);
+        }
+
+        // Tab Functions
+        function switchTab(tabId) {
+            tabButtons.forEach(button => {
+                button.classList.toggle('active', button.getAttribute('data-tab') === tabId);
+            });
+            
+            tabContents.forEach(content => {
+                content.classList.toggle('active', content.id === tabId);
+            });
+            
+            if (tabId === 'students-tab' && studentClassFilter && studentClassFilter.value) {
+                loadStudentAssignments();
+            }
+        }
+
+        // Student Assignment Functions
+        function handleStudentClassChange() {
+            const classId = studentClassFilter.value;
+            
+            studentStreamFilter.innerHTML = '<option value="">Select Stream</option>';
+            studentStreamFilter.disabled = true;
+            
+            if (classId) {
+                fetch('lessons.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=get_streams_by_class&class_id=${classId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.streams.length > 0) {
+                        studentStreamFilter.disabled = false;
+                        data.streams.forEach(stream => {
+                            const option = document.createElement('option');
+                            option.value = stream.id;
+                            option.textContent = stream.stream_name;
+                            studentStreamFilter.appendChild(option);
+                        });
+                    }
+                    loadStudentAssignments();
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to load streams', 'error');
+                });
+            } else {
+                clearStudentTable();
+            }
+        }
+
+        function loadStudentAssignments() {
+            const classId = studentClassFilter.value;
+            const streamId = studentStreamFilter ? studentStreamFilter.value || '' : '';
+            
+            if (!classId) {
+                clearStudentTable();
+                return;
+            }
+            
+            studentsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="2">
+                        <div class="loading-state">
+                            <div class="spinner" style="margin: 0 auto;"></div>
+                            <p>Loading student assignments...</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            fetch('lessons.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=get_student_subject_assignments&class_id=${classId}&stream_id=${streamId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderStudentAssignments(data.students, data.subjects, data.student_assignments);
+                    currentStudentAssignments = data.student_assignments;
+                } else {
+                    showToast('Error', 'Failed to load student assignments', 'error');
+                    clearStudentTable();
+                }
+            })
+            .catch(error => {
+                showToast('Error', 'Failed to load student assignments', 'error');
+                clearStudentTable();
+            });
+        }
+
+function renderStudentAssignments(students, subjects, studentAssignments) {
+    const studentsTableHead = document.getElementById('studentsTableHead');
+    const studentsTableBody = document.getElementById('studentsTableBody');
+    
+    if (!studentsTableHead || !studentsTableBody) return;
+    
+    studentsTableHead.innerHTML = '';
+    studentsTableBody.innerHTML = '';
+    
+    if (!students || students.length === 0 || !subjects || subjects.length === 0) {
+        studentsTableBody.innerHTML = `
+            <tr>
+                <td colspan="${2 + (subjects ? subjects.length : 0)}">
+                    <div class="empty-state-students">
+                        <i class="fas fa-info-circle"></i>
+                        <h3>No Data Available</h3>
+                        <p>No students or subjects found for this class/stream</p>
+                    </div>
+                 </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = `
+        <th><i class="fas fa-user"></i> Student Name</th>
+        <th><i class="fas fa-id-card"></i> Admission No</th>
+    `;
+    
+    subjects.forEach(subject => {
+        const subjectHeader = document.createElement('th');
+        subjectHeader.className = 'subject-column';
+        subjectHeader.textContent = subject.subject_name;
+        subjectHeader.setAttribute('data-subject-id', subject.id);
+        subjectHeader.setAttribute('data-subject', subject.subject_name);
+        headerRow.appendChild(subjectHeader);
+    });
+    
+    studentsTableHead.appendChild(headerRow);
+    
+    students.forEach(student => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-student-id', student.id);
+        
+        const fullName = [student.FirstName, student.SecondName, student.LastName]
+            .filter(name => name && name.trim() !== '')
+            .join(' ');
+        
+        let rowHTML = `
+            <td class="student-name-cell">
+                <i class="fas fa-user-graduate" style="margin-right: 0.5rem; color: var(--primary-blue);"></i>
+                ${escapeHtml(fullName)}
+            </td>
+            <td class="admission-cell">
+                <i class="fas fa-id-card" style="margin-right: 0.5rem; color: var(--text-light);"></i>
+                ${escapeHtml(student.AdmNo || 'N/A')}
+            </td>
+        `;
+        
+        subjects.forEach(subject => {
+            const isAssigned = studentAssignments[student.id] && 
+                              studentAssignments[student.id].includes(parseInt(subject.id));
+            const canEdit = PERMISSIONS.canAssignStudents || PERMISSIONS.canEdit || PERMISSIONS.isSuperAdmin;
+            
+            rowHTML += `
+                <td class="subject-cell">
+                    <input type="checkbox" 
+                           class="student-checkbox" 
+                           data-student-id="${student.id}" 
+                           data-subject-id="${subject.id}"
+                           ${isAssigned ? 'checked' : ''}
+                           ${!canEdit ? 'disabled' : ''}
+                           onchange="toggleStudentAssignment(this, ${student.id}, ${subject.id})">
+                </td>
+            `;
+        });
+        
+        row.innerHTML = rowHTML;
+        studentsTableBody.appendChild(row);
+    });
+}
+
+        function clearStudentTable() {
+            studentsTableHead.innerHTML = `
+                <tr>
+                    <th>Student Name</th>
+                    <th>Admission No</th>
+                </tr>
+            `;
+            studentsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="2">
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>No Data to Display</h3>
+                            <p>Please select a class to view student assignments</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        async function toggleStudentAssignment(checkbox, studentId, subjectId) {
+            if (!PERMISSIONS.canAssignStudents && !PERMISSIONS.canEdit && !PERMISSIONS.isSuperAdmin) {
+                showToast('Access Denied', 'You do not have permission to assign students', 'error');
+                checkbox.checked = !checkbox.checked;
+                return;
+            }
+            
+            if (isSubmitting) return;
+            
+            const isChecked = checkbox.checked;
+            
+            checkbox.classList.add('loading');
+            checkbox.disabled = true;
+            isSubmitting = true;
+            
+            try {
+                const response = await fetch('lessons.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=update_student_assignment&student_id=${studentId}&subject_id=${subjectId}&assign=${isChecked}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Success', data.message, 'success');
+                    updateStats();
+                    
+                    if (isChecked) {
+                        if (!currentStudentAssignments[studentId]) {
+                            currentStudentAssignments[studentId] = [];
+                        }
+                        if (!currentStudentAssignments[studentId].includes(subjectId)) {
+                            currentStudentAssignments[studentId].push(subjectId);
+                        }
+                    } else {
+                        if (currentStudentAssignments[studentId]) {
+                            const index = currentStudentAssignments[studentId].indexOf(subjectId);
+                            if (index > -1) {
+                                currentStudentAssignments[studentId].splice(index, 1);
+                            }
+                        }
+                    }
+                } else {
+                    checkbox.checked = !isChecked;
+                    showToast('Error', data.message, 'error');
+                }
+            } catch (error) {
+                checkbox.checked = !isChecked;
+                showToast('Error', 'Failed to update student assignment', 'error');
+            } finally {
+                isSubmitting = false;
+                checkbox.classList.remove('loading');
+                checkbox.disabled = false;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize multi-select
+            initMultiSelect();
+            
+            // Load initial data
+            loadClasses(currentAcademicLevel, classFilter, <?php echo isset($class_filter) && $class_filter !== '' ? $class_filter : 'null'; ?>, function() {
+                loadLessonsAjax();
+            });
+            if (studentClassFilter) loadClasses(currentAcademicLevel, studentClassFilter);
+            if (classSelect) loadClasses(currentAcademicLevel, classSelect);
+            
+            // Event Listeners
+            if (addLessonBtn) addLessonBtn.addEventListener('click', openAddLessonModal);
+            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModals);
+            if (cancelBtn) cancelBtn.addEventListener('click', closeModals);
+            if (lessonModal) {
+                lessonModal.addEventListener('click', (e) => {
+                    if (e.target === lessonModal) closeModals();
+                });
+            }
+            
+            if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', confirmDelete);
+            if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', closeModals);
+            if (closeDeleteModal) closeDeleteModal.addEventListener('click', closeModals);
+            if (deleteModal) {
+                deleteModal.addEventListener('click', (e) => {
+                    if (e.target === deleteModal) closeModals();
+                });
+            }
+            
+            if (lessonForm) {
+                lessonForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    saveLesson();
+                });
+            }
+            
+            // Academic level change
+            if (academicLevelFilter) {
+                academicLevelFilter.addEventListener('change', function() {
+                    currentAcademicLevel = this.value;
+                    loadClasses(currentAcademicLevel, classFilter, null, function() {
+                        if (classFilter) classFilter.value = '';
+                        loadLessonsAjax();
+                    });
+                    
+                    if (studentClassFilter) {
+                        loadClasses(currentAcademicLevel, studentClassFilter);
+                    }
+                    
+                    if (classSelect) {
+                        loadClasses(currentAcademicLevel, classSelect);
+                    }
+                });
+            }
+            
+            // Tab events
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    switchTab(tabId);
+                });
+            });
+            
+            // Filter events
+            if (classFilter) classFilter.addEventListener('change', applyFiltersAjax);
+            if (studentClassFilter) studentClassFilter.addEventListener('change', handleStudentClassChange);
+            if (studentStreamFilter) studentStreamFilter.addEventListener('change', loadStudentAssignments);
+            
+            // Form events
+            if (classSelect) classSelect.addEventListener('change', handleClassChange);
+            if (streamSelect) streamSelect.addEventListener('change', handleStreamChange);
+            
+            // Search
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase();
+                    const rows = lessonsTableBody.querySelectorAll('tr[data-lesson-id]');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+        });
+
+        // Make functions available globally
+        window.openAddLessonModal = openAddLessonModal;
+        window.editLesson = editLesson;
+        window.showDeleteModal = showDeleteModal;
+        window.changePage = changePage;
+        window.toggleStudentAssignment = toggleStudentAssignment;
+    </script>
+</body>
+
+</body>
+</html>

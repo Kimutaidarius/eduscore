@@ -1,0 +1,716 @@
+/*=============== GOOGLE FONTS ===============*/
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Unbounded:wght@200..900&display=swap");
+
+/*=============== VARIABLES CSS ===============*/
+:root {
+  /*========== Colors ==========*/
+  --first-color: hsl(210, 90%, 50%);
+  --first-color-alt: hsl(210, 90%, 45%);
+  --hover-color: hsl(0, 0%, 95%);
+  --title-color: hsl(0, 0%, 12%);
+  --text-color: hsl(0, 0%, 40%);
+  --white-color: hsl(0, 0%, 100%);
+  --border-color: hsl(0, 0%, 72%);
+  --body-color: hsl(0, 0%, 100%);
+  --success-color: hsl(150, 80%, 45%);
+  --success-bg: hsl(150, 80%, 95%);
+  --error-color: hsl(0, 80%, 55%);
+  --error-bg: hsl(0, 80%, 95%);
+  
+  /* Light blue colors for swiper */
+  --swiper-bg: hsl(195, 85%, 65%);
+  --swiper-bg-light: hsl(195, 85%, 75%);
+  --swiper-bg-dark: hsl(195, 85%, 55%);
+
+  /*========== Font and typography ==========*/
+  --body-font: "Montserrat", sans-serif;
+  --second-font: "Unbounded", sans-serif;
+  --bigger-font-size: 1.5rem;
+  --normal-font-size: .938rem;
+  --small-font-size: .875rem;
+  --smaller-font-size: .813rem;
+
+  /*========== Font weight ==========*/
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semi-bold: 600;
+
+  /*========== z index ==========*/
+  --z-tooltip: 10;
+  --z-fixed: 100;
+  --z-modal: 1000;
+}
+
+/*========== Responsive typography ==========*/
+@media screen and (min-width: 1150px) {
+  :root {
+    --bigger-font-size: 1.75rem;
+    --normal-font-size: 1rem;
+    --small-font-size: .938rem;
+    --smaller-font-size: .875rem;
+  }
+}
+
+/*=============== BASE ===============*/
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body,
+input,
+button {
+  font-family: var(--body-font);
+  font-size: var(--normal-font-size);
+}
+
+body {
+  background-color: var(--body-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+input,
+button {
+  border: none;
+  outline: none;
+}
+
+a {
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/*=============== REUSABLE CSS CLASSES ===============*/
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1rem;
+  width: 100%;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/*=============== ALERT ===============*/
+.alert {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: var(--font-medium);
+  animation: slideDown 0.4s ease;
+  max-width: 90%;
+  width: auto;
+  min-width: 280px;
+  box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.15);
+}
+
+@keyframes slideDown {
+  from {
+    top: -100%;
+    opacity: 0;
+  }
+  to {
+    top: 2rem;
+    opacity: 1;
+  }
+}
+
+.alert-error {
+  background-color: var(--error-bg);
+  color: var(--error-color);
+  border-left: 4px solid var(--error-color);
+}
+
+.alert-success {
+  background-color: var(--success-bg);
+  color: var(--success-color);
+  border-left: 4px solid var(--success-color);
+}
+
+.alert i:first-child {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.alert span {
+  flex: 1;
+  font-size: var(--small-font-size);
+}
+
+.alert-close {
+  cursor: pointer;
+  font-size: 1.1rem;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+  flex-shrink: 0;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
+/*=============== LOGIN ===============*/
+.login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.login__container {
+  align-items: center;
+  width: 100%;
+}
+
+.login__swiper {
+  display: none;
+}
+
+.login__data {
+  text-align: center;
+  color: var(--title-color);
+  margin-bottom: 1rem;
+}
+
+.login__title {
+  font-size: var(--bigger-font-size);
+  font-family: var(--second-font);
+  margin-bottom: 0.5rem;
+  color: var(--title-color);
+}
+
+.login__description {
+  font-size: var(--small-font-size);
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+.login__button, 
+.login__button-border {
+  width: 100%;
+  padding: 0.875rem;
+  border-radius: 0.5rem;
+  font-weight: var(--font-semi-bold);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: var(--normal-font-size);
+}
+
+.login__button {
+  background-color: var(--first-color);
+  color: var(--white-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.login__button:hover {
+  background-color: var(--first-color-alt);
+  box-shadow: 0 4px 12px hsla(210, 90%, 40%, 0.2);
+}
+
+.login__button-border {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--white-color);
+  border: 2px solid var(--border-color);
+  color: var(--title-color);
+  padding: 0.75rem;
+}
+
+.login__button-border i {
+  font-size: 1.25rem;
+}
+
+.login__button-border:hover {
+  background-color: var(--hover-color);
+  border-color: var(--first-color);
+}
+
+/*=============== IMPROVED LINE STYLES - FULLY RESPONSIVE ===============*/
+.login__line {
+  position: relative;
+  text-align: center;
+  font-weight: var(--font-semi-bold);
+  color: var(--first-color);
+  font-size: var(--small-font-size);
+  margin: 2rem 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.login__line::before,
+.login__line::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--first-color) 50%, transparent);
+  min-width: 30px;
+}
+
+.login__line::before {
+  background: linear-gradient(90deg, transparent, var(--first-color));
+}
+
+.login__line::after {
+  background: linear-gradient(90deg, var(--first-color), transparent);
+}
+
+/* Remove old line styles */
+.login__line span {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 0 0.5rem;
+}
+
+.login__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.login__box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login__input {
+  width: 100%;
+  background: none;
+  border: 2px solid var(--border-color);
+  padding: 0.875rem 0.875rem 0.875rem 2.75rem;
+  border-radius: 0.5rem;
+  color: var(--title-color);
+  font-weight: var(--font-medium);
+  transition: border 0.3s;
+  font-size: 0.9rem;
+}
+
+.login__input::placeholder {
+  color: var(--text-color);
+  font-weight: var(--font-regular);
+  font-size: 0.9rem;
+}
+
+.login__input:focus {
+  border-color: var(--title-color);
+}
+
+.login__box i {
+  position: absolute;
+  left: 1rem;
+  font-size: 1.2rem;
+  color: var(--title-color);
+  transition: color 0.3s;
+}
+
+.login__eye {
+  left: auto !important;
+  right: 1rem;
+  cursor: pointer;
+  z-index: var(--z-tooltip);
+}
+
+.login__options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  font-size: var(--small-font-size);
+}
+
+.login__remember {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.login__checkbox {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--first-color);
+}
+
+.login__remember-label {
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: var(--small-font-size);
+}
+
+.login__forgot {
+  color: var(--first-color);
+  font-weight: var(--font-medium);
+  font-size: var(--small-font-size);
+}
+
+.login__forgot:hover {
+  color: var(--first-color-alt);
+  text-decoration: underline;
+}
+
+.login__switch {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: var(--small-font-size);
+  color: var(--title-color);
+  margin-top: 1.25rem;
+}
+
+.login__sign {
+  color: var(--first-color);
+  font-weight: var(--font-semi-bold);
+}
+
+.login__sign:hover {
+  color: var(--first-color-alt);
+  text-decoration: underline;
+}
+
+.login__footer {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  font-size: var(--smaller-font-size);
+  color: var(--text-color);
+}
+
+.login__footer a:hover {
+  color: var(--first-color);
+}
+
+.login__footer span {
+  color: var(--border-color);
+}
+
+/*=============== SPINNER ===============*/
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/*=============== BREAKPOINTS ===============*/
+/* For small devices */
+@media screen and (max-width: 340px) {
+  .login__area {
+    padding: 0 0.25rem;
+  }
+  
+  .login__line {
+    gap: 0.5rem;
+    margin: 1.5rem 0;
+  }
+  
+  .login__options {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .login__footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .login__input {
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  }
+}
+
+/* For medium devices */
+@media screen and (min-width: 540px) {
+  .login__area {
+    width: 320px;
+    margin: 0 auto;
+  }
+}
+
+/* For large devices */
+@media screen and (min-width: 1150px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .login__container {
+    display: grid;
+    grid-template-columns: 500px 280px;
+    justify-content: center;
+    align-items: center;
+    gap: 3rem;
+    width: fit-content;
+    margin: 0 auto;
+    background-color: var(--white-color);
+    box-shadow: 0 0 20px hsla(0, 0%, 0%, 0.1);
+    padding: 0.5rem;
+    border-radius: 2.5rem;
+    position: relative;
+  }
+  
+  .login__swiper {
+    display: block;
+    width: 500px;
+    height: 600px;
+    position: relative;
+    border-radius: 2rem;
+    overflow: hidden;
+    margin: 0;
+    clip-path: path("M0 37.8182C0 16.9318 17.9784 0 40.156 0H511.843C534.902 0 553.224 18.2478 551.936 39.9306L516.273 600.294C515.083 620.328 497.487 636 476.18 636H40.156C17.9784 636 0 619.068 0 598.182V37.8182Z");
+    background: linear-gradient(135deg, var(--swiper-bg), var(--swiper-bg-dark));
+  }
+  
+  .login__swiper-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 2rem;
+    opacity: 0.85;
+    mix-blend-mode: overlay;
+  }
+  
+  /*=============== UPDATED: BLACK TEXT ON SWIPER ===============*/
+  .login__swiper-data,
+  .login__swiper-social {
+    position: absolute;
+    z-index: 20;
+    color: var(--title-color) !important;
+    text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
+  }
+  
+  .login__swiper-data {
+    top: 3rem;
+    left: 2rem;
+  }
+  
+  .login__swiper-subtitle {
+    font-size: var(--small-font-size);
+    font-weight: var(--font-semi-bold);
+    margin-bottom: 0.35rem;
+    opacity: 0.95;
+    color: var(--title-color) !important;
+  }
+  
+  .login__swiper-title {
+    font-size: 1.5rem;
+    font-family: var(--second-font);
+    line-height: 1.3;
+    color: var(--title-color) !important;
+  }
+  
+  .login__swiper-social {
+    left: 2rem;
+    bottom: 3rem;
+  }
+  
+  .login__swiper-links {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+  }
+  
+  .login__swiper-link {
+    color: var(--title-color) !important;
+    font-size: 1.25rem;
+    transition: transform 0.3s;
+    opacity: 0.95;
+  }
+  
+  .login__swiper-link:hover {
+    transform: translateY(-0.2rem);
+    opacity: 1;
+    color: var(--title-color) !important;
+  }
+
+  .login .swiper-pagination {
+    position: absolute;
+    bottom: 3rem !important;
+    right: 3rem;
+    left: auto !important;
+    width: auto;
+    z-index: 20;
+  }
+  
+  .login .swiper-pagination-bullet {
+    background-color: var(--title-color);
+    opacity: 0.5;
+    width: 6px;
+    height: 6px;
+    transition: opacity 0.3s;
+  }
+  
+  .login .swiper-pagination-bullet-active {
+    opacity: 1;
+    background-color: var(--title-color);
+  }
+
+  .login__area {
+    width: 280px;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .login__data {
+    text-align: left;
+    margin-bottom: 0.75rem;
+  }
+  
+  .login__title {
+    font-size: 1.35rem;
+    margin-bottom: 0.35rem;
+  }
+  
+  .login__description {
+    font-size: var(--small-font-size);
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+  }
+  
+  .login__button-border {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .login__button-border i {
+    font-size: 1.1rem;
+  }
+  
+  .login__line {
+    margin: 1.5rem 0;
+    gap: 1rem;
+  }
+  
+  .login__content {
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .login__input {
+    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .login__box i {
+    font-size: 1.1rem;
+    left: 0.9rem;
+  }
+  
+  .login__options {
+    margin-bottom: 1rem;
+    font-size: var(--smaller-font-size);
+  }
+  
+  .login__remember-label {
+    font-size: var(--smaller-font-size);
+  }
+  
+  .login__checkbox {
+    width: 13px;
+    height: 13px;
+  }
+  
+  .login__forgot {
+    font-size: var(--smaller-font-size);
+  }
+  
+  .login__switch {
+    margin-top: 1rem;
+    font-size: var(--smaller-font-size);
+  }
+  
+  .login__footer {
+    margin-top: 1.25rem;
+    font-size: 0.7rem;
+    gap: 0.5rem;
+  }
+  
+  .alert {
+    min-width: 300px;
+  }
+}
+
+/* For extra large devices */
+@media screen and (min-width: 1400px) {
+  .login__container {
+    transform: scale(1);
+  }
+  
+  .login__line {
+    gap: 2rem;
+  }
+}
+
+/* Loading state for button */
+.login__button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Remove all gradients from other elements */
+.login__title,
+.login__button,
+.login__swiper-data,
+.login__swiper-social {
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+}
+
+.login__button {
+  background-color: var(--first-color);
+}
+
+.login__button:hover {
+  background-color: var(--first-color-alt);
+}
+
+/* Fix image positioning */
+.login__swiper-img {
+  object-position: center;
+}
+
+/* Remove the white text override */
+.login__swiper-data *,
+.login__swiper-social *,
+.login__swiper-link {
+  color: inherit;
+}

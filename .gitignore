@@ -1,0 +1,5 @@
+.env
+.vscode/
+*.sql
+uploads/
+merged_reports/
