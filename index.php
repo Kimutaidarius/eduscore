@@ -586,444 +586,959 @@ try {
         
         :is(.course, .blog) .section-title { margin-block-end: 40px; }
         
-        /*-----------------------------------*\
-          #HEADER - FIXED MOBILE NAVBAR
-        \*-----------------------------------*/
-        .header .btn { display: none; }
-        
-        .header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: var(--white);
-            padding-block: 12px;
-            box-shadow: var(--shadow-1);
-            z-index: 4;
-            transition: var(--transition-1);
-            overflow: visible;
-        }
-        
-        .header.active { 
-            position: fixed;
-            transform: translateY(-100%);
-            animation: slideIn 0.5s ease forwards;
-        }
-        
-        @keyframes slideIn {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(0); }
-        }
-        
-        .header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            max-width: 100%;
-            overflow: visible;
-        }
-        
-        .logo {
-            flex-shrink: 0;
-        }
-        
-        .logo img { 
-            width: auto; 
-            height: 40px;
-            max-width: 120px;
-            object-fit: contain;
-        }
-        
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-shrink: 0;
-        }
-        
-        .theme-toggle {
-            background: none;
-            border: none;
-            font-size: 2rem;
-            cursor: pointer;
-            color: var(--eerie-black-1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-        }
-        
-        .theme-toggle .fa-sun { display: none; }
-        
-        body.dark-mode .theme-toggle .fa-moon { display: none; }
-        body.dark-mode .theme-toggle .fa-sun { display: block; }
-        
-        .portal-buttons-header {
-            display: flex;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-        
-        .portal-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1.4rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-        
-        .portal-btn-analytics {
-            background: #00BFFF;
-            color: #ffffff;
-        }
-        
-        .portal-btn-analytics:hover {
-            background: #009ac9;
-            transform: translateY(-2px);
-        }
-        
-        .portal-btn-finance {
-            background: transparent;
-            color: #00BFFF;
-            border: 1.5px solid #00BFFF;
-        }
-        
-        .portal-btn-finance:hover {
-            background: #00BFFF;
-            color: #ffffff;
-            transform: translateY(-2px);
-        }
-        
-        .menu-btn {
-            background: none;
-            border: none;
-            font-size: 2.4rem;
-            cursor: pointer;
-            color: var(--eerie-black-1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-            flex-shrink: 0;
-        }
-        
-        /* Mobile Navbar - Fixed */
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: -100%;
-            background-color: var(--white);
-            width: 85%;
-            max-width: 320px;
-            height: 100vh;
-            z-index: 1001;
-            transition: left 0.3s ease-out;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            box-shadow: 2px 0 20px rgba(0,0,0,0.15);
-        }
-        
-        .navbar.active {
-            left: 0;
-        }
-        
-        /* Prevent body scroll when navbar is open */
-        body.navbar-open {
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-        }
-        
-        .navbar .wrapper {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-block-end: 1px solid var(--platinum);
-        }
-        
-        .nav-close-btn {
-            background-color: var(--white);
-            box-shadow: var(--shadow-2);
-            padding: 8px;
-            border-radius: var(--radius-circle);
-            font-size: 2rem;
-            cursor: pointer;
-        }
-        
-        .nav-close-btn:is(:hover, :focus) {
-            background-color: var(--kappel);
-            color: var(--white);
-        }
-        
-        .navbar-list { 
-            padding: 15px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .navbar-item:not(:last-child) { border-block-end: 1px solid var(--platinum); }
-        
-        .navbar-link {
-            padding-block: 12px;
-            font-weight: var(--fw-500);
-            transition: var(--transition-1);
-            display: block;
-        }
-        
-        .navbar-link:is(:hover, :focus) { color: var(--kappel); }
-        
-        .mobile-portal-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-            padding: 15px 20px;
-            border-top: 1px solid var(--platinum);
-        }
-        
-        .mobile-portal-btn {
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1.4rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-        
-        .mobile-portal-btn-analytics {
-            background: #00BFFF;
-            color: #ffffff;
-        }
-        
-        .mobile-portal-btn-analytics:hover {
-            background: #009ac9;
-        }
-        
-        .mobile-portal-btn-finance {
-            background: transparent;
-            color: #00BFFF;
-            border: 1.5px solid #00BFFF;
-        }
-        
-        .mobile-portal-btn-finance:hover {
-            background: #00BFFF;
-            color: #ffffff;
-        }
-        
-        /* Dropdown Menu for Solutions */
-        .dropdown {
-            position: relative;
-        }
-        
-        .dropdown-menu {
-            position: static;
-            background-color: var(--white);
-            width: 100%;
-            box-shadow: none;
-            border-radius: var(--radius-5);
-            padding: 0;
-            margin-top: 5px;
-            margin-left: 15px;
-            opacity: 1;
-            visibility: visible;
-            transform: none;
-            display: none;
-        }
-        
-        .dropdown.active .dropdown-menu {
-            display: block;
-        }
-        
-        .dropdown-menu li a {
-            padding: 10px 20px;
-            display: block;
-            transition: var(--transition-1);
-            color: var(--eerie-black-1);
-            font-size: 1.4rem;
-        }
-        
-        .dropdown-menu li a:hover {
-            background-color: var(--kappel_15);
-            color: var(--kappel);
-            padding-left: 25px;
-        }
-        
-        .dropdown-arrow {
-            transition: transform 0.3s ease;
-            display: inline-block;
-            margin-left: 5px;
-            font-size: 1rem;
-        }
-        
-        .dropdown.active .dropdown-arrow {
-            transform: rotate(180deg);
-        }
-        
-        .overlay {
-            position: fixed;
-            inset: 0;
-            background-color: var(--black_80);
-            pointer-events: none;
-            opacity: 0;
-            z-index: 1000;
-            transition: opacity 0.3s ease;
-        }
-        
-        .overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        
-        /* Desktop Navbar */
-        @media (min-width: 992px) {
-            .menu-btn {
-                display: none;
-            }
-            
-            .navbar {
-                position: static;
-                left: auto !important;
-                width: auto;
-                max-width: none;
-                height: auto;
-                background: none;
-                transform: none !important;
-                overflow: visible;
-                display: flex;
-                align-items: center;
-                box-shadow: none;
-            }
-            
-            body.navbar-open {
-                overflow: auto;
-                position: relative;
-                width: auto;
-            }
-            
-            .navbar .wrapper {
-                display: none;
-            }
-            
-            .navbar-list {
-                flex-direction: row;
-                padding: 0;
-                gap: 30px;
-                align-items: center;
-            }
-            
-            .navbar-item:not(:last-child) {
-                border-block-end: none;
-            }
-            
-            .navbar-link {
-                padding-block: 0;
-            }
-            
-            .mobile-portal-buttons {
-                display: none;
-            }
-            
-            .dropdown {
-                position: relative;
-            }
-            
-            .dropdown-menu {
-                position: absolute;
-                top: 100%;
-                left: 0;
-                background-color: var(--white);
-                min-width: 220px;
-                box-shadow: var(--shadow-2);
-                border-radius: var(--radius-5);
-                padding: 10px 0;
-                margin: 0;
-                opacity: 0;
-                visibility: hidden;
-                transform: translateY(10px);
-                transition: all 0.3s ease;
-                z-index: 10;
-                display: block;
-            }
-            
-            .dropdown:hover .dropdown-menu {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
-            }
-            
-            .dropdown.active .dropdown-menu {
-                display: block;
-                opacity: 1;
-                visibility: visible;
-            }
-            
-            .dropdown-arrow {
-                display: inline-block;
-            }
-            
-            .overlay {
-                display: none;
-            }
-        }
-        
-        @media (max-width: 991px) {
-            .portal-buttons-header {
-                display: none;
-            }
-            
-            .header .btn {
-                display: none;
-            }
-        }
-        
-        /*-----------------------------------*\
-          #HERO
-        \*-----------------------------------*/
-        .hero {
-            padding-block-start: calc(var(--section-padding) + 80px);
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23f0f9ff" fill-opacity="0.5" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
-            background-repeat: no-repeat;
-            background-size: cover;
-            background-position: center;
-        }
-        
-        .hero .container {
-            display: grid;
-            gap: 40px;
-        }
-        
-        .hero-text {
-            color: var(--eerie-black-1);
-            font-size: var(--fs-4);
-            text-align: center;
-            margin-block: 18px 20px;
-        }
-        
-        .hero .btn { margin-inline: auto; }
-        
-        .hero-banner {
-            display: grid;
-            grid-template-columns: 1fr 0.8fr;
-            align-items: flex-start;
-            gap: 30px;
-        }
-        
-        .hero-banner .img-holder.one {
-            border-top-right-radius: 70px;
-            border-bottom-left-radius: 110px;
-        }
-        
-        .hero-banner .img-holder.two {
-            border-top-left-radius: 50px;
-            border-bottom-right-radius: 90px;
-        }
-        
+/*-----------------------------------*\
+  #HEADER - GLASS MORPHISM & RESPONSIVE (FIXED)
+\*-----------------------------------*/
+
+.header .btn { display: none; }
+
+/* ---------- 1. GLASS MORPHISM HEADER ---------- */
+.header {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 40px);
+  max-width: 1400px;
+  padding-block: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  z-index: 1000;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ---------- 2. STICKY ACTIVE STATE WITH ANIMATION ---------- */
+.header.active {
+  top: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  animation: slideIn 0.4s ease forwards;
+}
+
+@keyframes slideIn {
+  0% { transform: translateY(-100%) translateX(-50%); }
+  100% { transform: translateY(0) translateX(-50%); }
+}
+
+/* ---------- FLOATING HOVER EFFECT ---------- */
+.header:hover {
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* Header Container */
+.header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  max-width: 100%;
+  overflow: visible;
+  padding: 0 15px;
+}
+
+/* Logo */
+.logo { flex-shrink: 0; }
+.logo img {
+  width: auto;
+  height: 40px;
+  max-width: 120px;
+  object-fit: contain;
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-shrink: 0;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: var(--eerie-black-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  transition: all 0.3s ease;
+}
+.theme-toggle:hover {
+  transform: scale(1.1);
+}
+.theme-toggle .fa-sun { display: none; }
+body.dark-mode .theme-toggle .fa-moon { display: none; }
+body.dark-mode .theme-toggle .fa-sun { display: block; }
+
+/* Portal Buttons Container */
+.portal-buttons-header {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+
+
+/* ---------- 3. PREMIUM PORTAL BUTTONS (GLASS) ---------- */
+.portal-btn {
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.portal-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 191, 255, 0.22);
+}
+
+.portal-btn-analytics {
+  background: #00BFFF;
+  color: #ffffff;
+}
+.portal-btn-analytics:hover {
+  background: #009ac9;
+  transform: translateY(-2px);
+}
+
+.portal-btn-finance {
+  background: transparent;
+  color: #00BFFF;
+  border: 1.5px solid #00BFFF;
+}
+.portal-btn-finance:hover {
+  background: #00BFFF;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* ---------- 4. GLASS MORPHISM MOBILE NAVBAR (DRAWER) ---------- */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: -100%;
+  width: 85%;
+  max-width: 340px;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  z-index: 1001;
+  transition: left 0.35s ease;
+  overflow-y: auto;
+}
+.navbar.active { left: 0; }
+
+/* Prevent body scroll when navbar is open */
+body.navbar-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+.navbar .wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-block-end: 1px solid var(--platinum);
+}
+
+.nav-close-btn {
+  background-color: var(--white);
+  box-shadow: var(--shadow-2);
+  padding: 8px;
+  border-radius: var(--radius-circle);
+  font-size: 2rem;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-close-btn:is(:hover, :focus) {
+  background-color: var(--kappel);
+  color: var(--white);
+}
+
+.navbar-list {
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.navbar-item:not(:last-child) { border-block-end: 1px solid var(--platinum); }
+
+/* ---------- 5. PREMIUM NAV LINKS (GLASS HOVER) ---------- */
+.navbar-link {
+  position: relative;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #111827;
+  transition: all 0.3s ease;
+  display: block;
+  text-decoration: none;
+}
+.navbar-link:hover {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #00BFFF;
+  transform: translateY(-1px);
+}
+
+/* Mobile Portal Buttons */
+.mobile-portal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+  padding: 15px 20px;
+  border-top: 1px solid var(--platinum);
+}
+.mobile-portal-btn {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.4rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+.mobile-portal-btn-analytics {
+  background: #00BFFF;
+  color: #ffffff;
+}
+.mobile-portal-btn-analytics:hover { background: #009ac9; }
+.mobile-portal-btn-finance {
+  background: transparent;
+  color: #00BFFF;
+  border: 1.5px solid #00BFFF;
+}
+.mobile-portal-btn-finance:hover {
+  background: #00BFFF;
+  color: #ffffff;
+}
+
+/* ---------- 6. GLASS MORPHISM DROPDOWN ---------- */
+.dropdown { position: relative; }
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 15px);
+  left: 0;
+  min-width: 240px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+.dropdown.active .dropdown-menu { 
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Dropdown Items Hover Effect */
+.dropdown-menu li a {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #111827;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+.dropdown-menu li a:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #00BFFF;
+  transform: translateX(4px);
+}
+
+/* Dropdown Arrow Animation */
+.dropdown-arrow {
+  transition: transform 0.3s ease;
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 1rem;
+}
+.dropdown.active .dropdown-arrow { transform: rotate(180deg); }
+
+/* ---------- 7. OVERLAY WITH BLUR (GLASS) ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.3s ease;
+  z-index: 1000;
+}
+.overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Menu Button */
+.menu-btn {
+  background: none;
+  border: none;
+  font-size: 2.4rem;
+  cursor: pointer;
+  color: var(--eerie-black-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+.menu-btn:hover {
+  transform: scale(1.1);
+}
+
+/* ---------- 8. DARK MODE GLASS EFFECTS ---------- */
+body.dark-mode .header,
+body.dark-mode .navbar,
+body.dark-mode .dropdown-menu {
+  background: rgba(17, 25, 40, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+body.dark-mode .navbar-link {
+  color: #e0e0e0;
+}
+
+body.dark-mode .dropdown-menu li a {
+  color: #e0e0e0;
+}
+
+body.dark-mode .dropdown-menu li a:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #00BFFF;
+}
+
+/* ---------- 9. FULLY RESPONSIVE: DESKTOP ---------- */
+@media (min-width: 992px) {
+  .menu-btn { display: none; }
+
+  .navbar {
+    position: static;
+    left: auto !important;
+    width: auto;
+    max-width: none;
+    height: auto;
+    background: none;
+    transform: none !important;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  body.navbar-open {
+    overflow: auto;
+    position: relative;
+    width: auto;
+  }
+
+  .navbar .wrapper { display: none; }
+
+  .navbar-list {
+    flex-direction: row;
+    padding: 0;
+    gap: 30px;
+    align-items: center;
+  }
+
+  .navbar-item:not(:last-child) { border-block-end: none; }
+  .navbar-link { padding-block: 0; }
+  .mobile-portal-buttons { display: none; }
+
+  /* Desktop Dropdown - Glass */
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    padding: 12px;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 10;
+    display: block;
+  }
+  .dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .dropdown.active .dropdown-menu {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .dropdown-arrow { display: inline-block; }
+  .overlay { display: none; }
+}
+
+/* ---------- 10. RESPONSIVE: TABLET & MOBILE ---------- */
+@media (max-width: 991px) {
+  .portal-buttons-header { display: none; }
+  .header .btn { display: none; }
+}
+
+/* Small Mobile Adjustments */
+@media (max-width: 480px) {
+  .header {
+    width: calc(100% - 20px);
+    top: 10px;
+    padding-block: 8px;
+  }
+  .header.active { top: 6px; }
+  .logo img {
+    height: 32px;
+    max-width: 100px;
+  }
+  .navbar-link { font-size: 1.4rem; }
+}
+/*-----------------------------------*\
+  #HERO SECTION WITH STATS - OPTIMIZED SPACING
+\*-----------------------------------*/
+
+/* Hero Section - Appears just below header */
+.hero {
+    position: relative;
+    padding-top: 70px;
+    padding-bottom: 70px;
+    background: linear-gradient(135deg, 
+        rgba(0, 191, 255, 0.05) 50%,
+        rgba(0, 191, 255, 0.02) 25%, 
+        transparent 50%);
+    overflow: hidden;
+}
+
+/* Gradient overlay for depth */
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 10% 20%, rgba(0, 191, 255, 0.03) 0%, transparent 80%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Container positioning */
+.hero .container {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 50px;
+}
+
+/* Hero Content */
+.hero-content {
+    text-align: center;
+}
+
+/* CBE Badge - Orange Background */
+.cbe-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    padding: 8px 18px;
+    border-radius: 50px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.cbe-badge i {
+    font-size: 1.4rem;
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 25px rgba(249, 115, 22, 0.6);
+    }
+    100% {
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+    }
+}
+
+/* Hero Title */
+.hero-text {
+    color: var(--eerie-black-1);
+    font-size: var(--fs-4);
+    text-align: center;
+    margin-block: 18px 20px;
+}
+
+.hero .btn { 
+    margin-inline: auto; 
+}
+
+/* Hero Stats Section */
+.hero-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 40px;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hero-stat-item {
+    text-align: center;
+    padding: 15px;
+}
+
+.hero-stat-number {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--kappel);
+    font-family: var(--ff-league_spartan);
+    margin-bottom: 8px;
+}
+
+.hero-stat-label {
+    font-size: 1.3rem;
+    color: var(--gray-web);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Hero Banner - Original Design */
+.hero-banner {
+    display: grid;
+    grid-template-columns: 1fr 0.8fr;
+    align-items: flex-start;
+    gap: 30px;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-banner .img-holder.one {
+    border-top-right-radius: 70px;
+    border-bottom-left-radius: 110px;
+}
+
+.hero-banner .img-holder.two {
+    border-top-left-radius: 50px;
+    border-bottom-right-radius: 90px;
+}
+
+.hero-shape-1 {
+    position: absolute;
+    bottom: -40px;
+    left: -60px;
+    z-index: -1;
+    display: block;
+}
+
+/* Responsive: Tablet and Mobile */
+@media (min-width: 768px) {
+    .hero-stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .hero-stat-number {
+        font-size: 3.5rem;
+    }
+}
+
+@media (min-width: 992px) {
+    .hero {
+        padding-top: 100px;
+    }
+    
+    .hero .container {
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+        gap: 60px;
+    }
+    
+    .hero-content {
+        text-align: left;
+    }
+    
+    .cbe-badge {
+        margin-left: 0;
+        margin-right: auto;
+    }
+    
+    .hero-text {
+        text-align: left;
+    }
+    
+    .hero-button-group {
+        justify-content: flex-start !important;
+    }
+    
+    .hero-stats {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 991px) {
+    .hero-banner {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        padding-top: 85px;
+        padding-bottom: 60px;
+    }
+    
+    .cbe-badge {
+        margin-left: auto;
+        margin-right: auto;
+        font-size: 1.2rem;
+        padding: 6px 14px;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero {
+        padding-top: 75px;
+        padding-bottom: 50px;
+    }
+    
+    .hero-stats {
+        padding: 20px;
+        gap: 10px;
+    }
+    
+    .hero-stat-item {
+        padding: 10px;
+    }
+    
+    .hero-stat-number {
+        font-size: 2rem;
+    }
+    
+    .hero-stat-label {
+        font-size: 1rem;
+    }
+}
+/*-----------------------------------*\
+  #PORTAL CARDS SECTION - GLASSMORPHISM
+\*-----------------------------------*/
+
+.portal-cards-section {
+    background: linear-gradient(135deg, 
+        rgba(0, 191, 255, 0.03) 0%,
+        rgba(0, 191, 255, 0.01) 100%);
+    padding: 80px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glassmorphism effect background */
+.portal-cards-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.portal-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Glassmorphism Card */
+.portal-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 24px;
+    padding: 35px 25px;
+    text-align: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Glassmorphism hover effect */
+.portal-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Animated gradient border on hover */
+.portal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(0, 191, 255, 0.8), 
+        rgba(0, 191, 255, 0.8), 
+        transparent);
+    transition: left 0.6s ease;
+}
+
+.portal-card:hover::before {
+    left: 100%;
+}
+
+/* Card icon with glass effect */
+.portal-card-icon {
+    width: 85px;
+    height: 85px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 25px;
+    font-size: 2.8rem;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.portal-card:hover .portal-card-icon {
+    transform: scale(1.05) translateY(-5px);
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Card title with glass effect */
+.portal-card-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--eerie-black-1), var(--gray-web));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+}
+
+/* Dark mode title */
+body.dark-mode .portal-card-title {
+    background: linear-gradient(135deg, #ffffff, #a0a0a0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Card description */
+.portal-card-desc {
+    font-size: 1.4rem;
+    color: var(--gray-web);
+    margin-bottom: 25px;
+    line-height: 1.6;
+    opacity: 0.85;
+}
+
+/* Glass button */
+.portal-card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 1.3rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: var(--kappel);
+}
+
+.portal-card-btn:hover {
+    background: rgba(0, 191, 255, 0.2);
+    border-color: rgba(0, 191, 255, 0.5);
+    transform: translateX(5px);
+    gap: 12px;
+}
+
+/* Individual portal card icon colors (glass style) */
+.portal-card[data-type="analytics"] .portal-card-icon { 
+    color: #00BFFF;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+}
+.portal-card[data-type="analytics"]:hover .portal-card-icon { 
+    background: rgba(0, 191, 255, 0.2);
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+}
+
+.portal-card[data-type="fee"] .portal-card-icon { 
+    color: #10B981;
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+.portal-card[data-type="fee"]:hover .portal-card-icon { 
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.portal-card[data-type="sms"] .portal-card-icon { 
+    color: #F59E0B;
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+.portal-card[data-type="sms"]:hover .portal-card-icon { 
+    background: rgba(245, 158, 11, 0.2);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.portal-card[data-type="mwalimu"] .portal-card-icon { 
+    color: #8B5CF6;
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+.portal-card[data-type="mwalimu"]:hover .portal-card-icon { 
+    background: rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.portal-card[data-type="parents"] .portal-card-icon { 
+    color: #EC4899;
+    text-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+}
+.portal-card[data-type="parents"]:hover .portal-card-icon { 
+    background: rgba(236, 72, 153, 0.2);
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+}
+
+/* Dark mode adjustments for glass cards */
+body.dark-mode .portal-card {
+    background: rgba(17, 25, 40, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .portal-card:hover {
+    background: rgba(17, 25, 40, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+body.dark-mode .portal-card-icon {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .portal-card-desc {
+    color: var(--gray-x-11);
+}
+
+/* Responsive Grid Layouts */
+@media (min-width: 768px) {
+    .portal-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+}
+
+@media (min-width: 992px) {
+    .portal-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .portal-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+    .portal-cards-section {
+        padding: 60px 0;
+    }
+    
+    .portal-card {
+        padding: 30px 20px;
+    }
+    
+    .portal-card-icon {
+        width: 70px;
+        height: 70px;
+        font-size: 2.2rem;
+    }
+    
+    .portal-card-title {
+        font-size: 1.6rem;
+    }
+    
+    .portal-card-desc {
+        font-size: 1.3rem;
+    }
+}
+
         /*-----------------------------------*\
           #CATEGORY
         \*-----------------------------------*/
@@ -2039,6 +2554,7 @@ try {
             .hero .container { grid-template-columns: 1fr 1fr; align-items: center; }
             .hero .section-title, .hero-text { text-align: left; }
             .hero .btn { margin-inline: 0; }
+            .hero-stats { margin-top: 30px; }
             .about .container { grid-template-columns: 1fr 0.6fr; align-items: center; gap: 60px; }
             .footer .grid-list { grid-template-columns: 1fr 0.6fr 0.6fr 1.2fr; }
             .contact-info-grid { grid-template-columns: 1fr; }
@@ -2171,70 +2687,65 @@ try {
     <?php endif; ?>
 
     <!-- Header -->
-    <header class="header" data-header>
-        <div class="container">
-            <a href="/" class="logo">
-                <img src="/images/logo.png" alt="EduScore logo">
-            </a>
+<header class="header" data-header>
+    <div class="container">
+        <a href="/" class="logo">
+            <img src="/images/logo.png" alt="EduScore logo">
+        </a>
 
-            <nav class="navbar" data-navbar>
-                <div class="wrapper">
-                    <a href="/" class="logo">
-                        <img src="/images/logo.png" alt="EduScore logo">
-                    </a>
-                    <button class="nav-close-btn" aria-label="close menu" data-nav-toggler>
-                        <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
-                    </button>
-                </div>
-                <ul class="navbar-list">
-                    <li class="navbar-item"><a href="#home" class="navbar-link" data-nav-link>Home</a></li>
-                    <li class="navbar-item"><a href="#about" class="navbar-link" data-nav-link>About</a></li>
-                    <li class="navbar-item dropdown" id="solutionsDropdown">
-                        <a href="#courses" class="navbar-link" data-nav-link>
-                            Solutions <i class="fas fa-chevron-down dropdown-arrow"></i>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a href="analytics.php"><i class="fas fa-chart-line" style="margin-right: 8px;"></i> Exam Management</a></li>
-                            <li><a href="feesystem.php"><i class="fas fa-wallet" style="margin-right: 8px;"></i> Fee Management</a></li>
-                            <li><a href="parents-portal/register.php"><i class="fas fa-users" style="margin-right: 8px;"></i> Parents Portal</a></li>
-                            <li><a href="#"><i class="fas fa-file-alt" style="margin-right: 8px;"></i> Reports</a></li>
-                        </ul>
-                    </li>
-                    <li class="navbar-item"><a href="#pricing" class="navbar-link" data-nav-link>Pricing</a></li>
-                    <li class="navbar-item"><a href="blog.php" class="navbar-link" data-nav-link>Blog</a></li>
-                    <li class="navbar-item"><a href="#contact" class="navbar-link" data-nav-link>Contact</a></li>
-                </ul>
-                
-                <!-- Mobile Portal Buttons inside navbar -->
-                <div class="mobile-portal-buttons">
-                    <a href="analytics.php" class="mobile-portal-btn mobile-portal-btn-analytics">Analytics Portal</a>
-                    <a href="feesystem.php" class="mobile-portal-btn mobile-portal-btn-finance">Finance Portal</a>
-                </div>
-            </nav>
-
-            <div class="header-actions">
-                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-                    <i class="fas fa-moon"></i><i class="fas fa-sun"></i>
-                </button>
-                <div class="portal-buttons-header">
-                    <a href="analytics.php" class="portal-btn portal-btn-analytics">Analytics Portal</a>
-                    <a href="feesystem.php" class="portal-btn portal-btn-finance">Finance Portal</a>
-                </div>
-                <button class="menu-btn" aria-label="open menu" data-nav-toggler>
-                    <ion-icon name="menu-outline" aria-hidden="true"></ion-icon>
+        <nav class="navbar" data-navbar>
+            <div class="wrapper">
+                <a href="/" class="logo">
+                    <img src="/images/logo.png" alt="EduScore logo">
+                </a>
+                <button class="nav-close-btn" aria-label="close menu" data-nav-toggler>
+                    <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
                 </button>
             </div>
-
-            <div class="overlay" data-nav-toggler data-overlay></div>
+            <ul class="navbar-list">
+                <li class="navbar-item"><a href="#home" class="navbar-link" data-nav-link>Home</a></li>
+                <li class="navbar-item"><a href="about.php" class="navbar-link">About</a></li>
+                <li class="navbar-item"><a href="pricing.php" class="navbar-link">Pricing</a></li>
+               <li class="navbar-item"><a href="career-pathways.php" class="navbar-link" data-nav-link>Career Pathways</a></li>
+                <li class="navbar-item"><a href="blog.php" class="navbar-link" data-nav-link>Blog</a></li>
+            </ul>
+            
+            <!-- Mobile Portal Buttons inside navbar -->
+            <div class="mobile-portal-buttons">
+                <a href="analytics.php" class="mobile-portal-btn mobile-portal-btn-analytics">Analytics Portal</a>
+                <a href="feesystem.php" class="mobile-portal-btn mobile-portal-btn-finance">Finance Portal</a>
+            </div>
+        </nav>
+        
+        <div class="header-actions">
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                <i class="fas fa-moon"></i><i class="fas fa-sun"></i>
+            </button>
+            <div class="portal-buttons-header">
+                <a href="analytics.php" class="portal-btn portal-btn-analytics">Analytics Portal</a>
+                <a href="feesystem.php" class="portal-btn portal-btn-finance">Finance Portal</a>
+            </div>
+            <button class="menu-btn" aria-label="open menu" data-nav-toggler>
+                <ion-icon name="menu-outline" aria-hidden="true"></ion-icon>
+            </button>
         </div>
-    </header>
+
+        <div class="overlay" data-nav-toggler data-overlay></div>
+    </div>
+</header>
 
     <main>
         <article>
-            <!-- Hero Section -->
+
 <section class="section hero has-bg-image" id="home" aria-label="home">
     <div class="container">
         <div class="hero-content reveal">
+            <!-- Orange Badge - Built for CBE curriculum - Appears immediately after header -->
+            <div class="cbe-badge">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Built for CBE curriculum</span>
+            </div>
+            
             <h1 class="h1 section-title">
                 The Best School <span class="span">Management System</span> for Kenyan Schools
             </h1>
@@ -2242,7 +2753,7 @@ try {
                 Streamline administration, enhance learning outcomes, and engage parents seamlessly with Kenya's #1 school management platform.
             </p>
             
-            <!-- Button Group with better styling -->
+            <!-- Button Group -->
             <div class="hero-button-group" style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
                 <a href="register.php" class="btn-primary-custom" style="background: var(--kappel); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
                     <span>Start Free Trial</span>
@@ -2257,8 +2768,30 @@ try {
                     <span>Bulk SMS</span>
                 </a>
             </div>
+
+            <!-- Stats Counter inside Hero -->
+            <div class="hero-stats">
+                <div class="hero-stat-item">
+                    <div class="hero-stat-number" id="heroSchoolsCount">0</div>
+                    <div class="hero-stat-label">Schools</div>
+                </div>
+                <div class="hero-stat-item">
+                    <div class="hero-stat-number" id="heroStudentsCount">0</div>
+                    <div class="hero-stat-label">Students</div>
+                </div>
+                <div class="hero-stat-item">
+                    <div class="hero-stat-number" id="heroTeachersCount">0</div>
+                    <div class="hero-stat-label">Teachers</div>
+                </div>
+                <div class="hero-stat-item">
+                    <div class="hero-stat-number" id="heroReportsCount">0</div>
+                    <div class="hero-stat-label">Reports Generated</div>
+                </div>
+            </div>
         </div>
-        <figure class="hero-banner reveal delay-1">
+        
+        <!-- Original Hero Banner with Two Images -->
+        <div class="hero-banner">
             <div class="img-holder one" style="--width: 270; --height: 300;">
                 <img src="/images/school-bg.png" width="270" height="300" alt="hero banner" class="img-cover">
             </div>
@@ -2266,332 +2799,69 @@ try {
                 <img src="/images/logo.png" width="240" height="370" alt="hero banner" class="img-cover">
             </div>
             <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 380 190'%3E%3Cpath fill='%2300BFFF' fill-opacity='0.1' d='M0,0 L380,0 L380,190 L0,190 Z'/%3E%3C/svg%3E" width="380" height="190" alt="" class="shape hero-shape-1">
-        </figure>
-    </div>
-</section>
-
-            <!-- Stats Counter Section -->
-            <section class="stats-counter section">
-                <div class="container">
-                    <ul class="grid-list">
-                        <li><div class="stats-card" style="--color: 170, 75%, 41%"><h3 class="card-title" id="schoolsCount">0</h3><p class="card-text">Schools</p></div></li>
-                        <li><div class="stats-card" style="--color: 351, 83%, 61%"><h3 class="card-title" id="studentsCount">0</h3><p class="card-text">Students</p></div></li>
-                        <li><div class="stats-card" style="--color: 260, 100%, 67%"><h3 class="card-title" id="teachersCount">0</h3><p class="card-text">Teachers</p></div></li>
-                        <li><div class="stats-card" style="--color: 42, 94%, 55%"><h3 class="card-title" id="reportsCount">0</h3><p class="card-text">Reports Generated</p></div></li>
-                    </ul>
-                </div>
-            </section>
-
-            <!-- Category / Features Section -->
-            <section class="section category" aria-label="category">
-                <div class="container">
-                    <p class="section-subtitle">Features</p>
-                    <h2 class="h2 section-title">Everything You Need to <span class="span">Run Your School</span></h2>
-                    <p class="section-text">Powerful tools designed to streamline every aspect of school administration</p>
-                    <ul class="grid-list">
-                        <li><div class="category-card" style="--color: 170, 75%, 41%"><div class="card-icon"><i class="fas fa-coins" style="font-size: 40px; color: hsl(170, 75%, 41%);"></i></div><h3 class="h3"><a href="#" class="card-title">Smart Fee Management</a></h3><p class="card-text">Automated fee tracking, online payments, and real-time balance updates.</p><span class="card-badge">Popular</span></div></li>
-                        <li><div class="category-card" style="--color: 351, 83%, 61%"><div class="card-icon"><i class="fas fa-bullhorn" style="font-size: 40px; color: hsl(351, 83%, 61%);"></i></div><h3 class="h3"><a href="#" class="card-title">Bulk SMS Notifications</a></h3><p class="card-text">Send instant alerts, reminders, and announcements to parents and staff.</p><span class="card-badge">Instant</span></div></li>
-                        <li><div class="category-card" style="--color: 260, 100%, 67%"><div class="card-icon"><i class="fas fa-chart-pie" style="font-size: 40px; color: hsl(260, 100%, 67%);"></i></div><h3 class="h3"><a href="#" class="card-title">Real-time Analytics</a></h3><p class="card-text">Visualize school performance and student progress with interactive charts.</p><span class="card-badge">Live</span></div></li>
-                        <li><div class="category-card" style="--color: 42, 94%, 55%"><div class="card-icon"><i class="fas fa-file-alt" style="font-size: 40px; color: hsl(42, 94%, 55%);"></i></div><h3 class="h3"><a href="#" class="card-title">Automated Report Cards</a></h3><p class="card-text">Generate professional report cards instantly with customizable templates.</p><span class="card-badge">Auto</span></div></li>
-                    </ul>
-                </div>
-            </section>
-
-            <!-- About Section -->
-            <section class="section about" id="about" aria-label="about">
-                <div class="container">
-                    <figure class="about-banner reveal">
-                        <div class="img-holder" style="--width: 520; --height: 370;"><img src="/images/school-bg.png" width="520" height="370" loading="lazy" alt="about banner" class="img-cover"></div>
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 420'%3E%3Cpath fill='%2300BFFF' fill-opacity='0.05' d='M0,0 L360,0 L360,420 L0,420 Z'/%3E%3C/svg%3E" width="360" height="420" loading="lazy" alt="" class="shape about-shape-1">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 371 220'%3E%3Cpath fill='%23facc15' fill-opacity='0.1' d='M0,0 L371,0 L371,220 L0,220 Z'/%3E%3C/svg%3E" width="371" height="220" loading="lazy" alt="" class="shape about-shape-2">
-                    </figure>
-                    <div class="about-content reveal delay-1">
-                        <p class="section-subtitle">About Us</p>
-                        <h2 class="h2 section-title">Over 10 Years in <span class="span">School Management</span> for Kenyan Education</h2>
-                        <p class="section-text">EduScore is Kenya's leading school management system, trusted by 500+ schools across the country. We provide comprehensive solutions for CBC and 8-4-4 curricula.</p>
-                        <ul class="about-list">
-                            <li class="about-item"><ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon><span class="span">Expert Trainers & Support</span></li>
-                            <li class="about-item"><ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon><span class="span">Cloud-Based Remote Access</span></li>
-                            <li class="about-item"><ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon><span class="span">Lifetime Data Security</span></li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-<!-- Courses / Solutions Section -->
-<section class="section course" id="courses" aria-label="course">
-    <div class="container">
-        <p class="section-subtitle">Our Solutions</p>
-        <h2 class="h2 section-title">Pick A Solution To Get Started</h2>
-        <ul class="grid-list">
-            <li>
-                <div class="course-card">
-                    <figure class="card-banner img-holder" style="--width: 370; --height: 220;">
-                        <img src="/images/analytics.PNG" width="370" height="220" loading="lazy" alt="Exam Analysis" class="img-cover">
-                    </figure>
-                    <div class="abs-badge"><ion-icon name="time-outline" aria-hidden="true"></ion-icon><span class="span">Real-time</span></div>
-                    <div class="card-content">
-                        <span class="badge">Analytics</span>
-                        <h3 class="h3"><a href="analytics.php" class="card-title">Exam Analysis & Performance Tracking</a></h3>
-                        <div class="wrapper">
-                            <div class="rating-wrapper">
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                            </div>
-                            <p class="rating-text">(4.9/5 Rating)</p>
-                        </div>
-                        <data class="price" value="0">Free Trial</data>
-                        <ul class="card-meta-list">
-                            <li class="card-meta-item"><ion-icon name="library-outline" aria-hidden="true"></ion-icon><span class="span">Auto Reports</span></li>
-                            <li class="card-meta-item"><ion-icon name="people-outline" aria-hidden="true"></ion-icon><span class="span">All Students</span></li>
-                        </ul>
-                        <div class="pricing-actions" style="margin-top: 1.5rem;">
-                            <a href="analytics.php" class="pricing-button primary" style="background: var(--kappel); color: #fff; padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Get Started</a>
-                            <a href="analytics.php" class="pricing-button outline" style="border: 2px solid var(--kappel); color: var(--kappel); background: transparent; padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Learn More</a>
-                        </div>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div class="course-card">
-                    <figure class="card-banner img-holder" style="--width: 370; --height: 220;">
-                        <img src="/images/feesystem.PNG" width="370" height="220" loading="lazy" alt="Fee Management" class="img-cover">
-                    </figure>
-                    <div class="abs-badge"><ion-icon name="time-outline" aria-hidden="true"></ion-icon><span class="span">Automated</span></div>
-                    <div class="card-content">
-                        <span class="badge">Finance</span>
-                        <h3 class="h3"><a href="feesystem.php" class="card-title">Fee Management & Payment Tracking</a></h3>
-                        <div class="wrapper">
-                            <div class="rating-wrapper">
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                            </div>
-                            <p class="rating-text">(4.8/5 Rating)</p>
-                        </div>
-                        <data class="price" value="0">Free Trial</data>
-                        <ul class="card-meta-list">
-                            <li class="card-meta-item"><ion-icon name="library-outline" aria-hidden="true"></ion-icon><span class="span">M-Pesa</span></li>
-                            <li class="card-meta-item"><ion-icon name="people-outline" aria-hidden="true"></ion-icon><span class="span">Auto Reminders</span></li>
-                        </ul>
-                        <div class="pricing-actions" style="margin-top: 1.5rem;">
-                            <a href="feesystem.php" class="pricing-button primary" style="background: var(--kappel); color: #fff; padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Get Started</a>
-                            <a href="feesystem.php" class="pricing-button outline" style="border: 2px solid var(--kappel); color: var(--kappel); background: transparent; padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Learn More</a>
-                        </div>
-                    </div>
-                </div>
-            </li>
-            <li>
-                <div class="course-card">
-                    <figure class="card-banner img-holder" style="--width: 370; --height: 220;">
-                        <img src="/images/bulksms.PNG" width="370" height="220" loading="lazy" alt="Bulk SMS" class="img-cover">
-                    </figure>
-                    <div class="abs-badge"><ion-icon name="time-outline" aria-hidden="true"></ion-icon><span class="span">Instant</span></div>
-                    <div class="card-content">
-                        <span class="badge">Communication</span>
-                        <h3 class="h3"><a href="bulksms.php" class="card-title">Bulk SMS & Notifications</a></h3>
-                        <div class="wrapper">
-                            <div class="rating-wrapper">
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                                <ion-icon name="star"></ion-icon>
-                            </div>
-                            <p class="rating-text">(4.9/5 Rating)</p>
-                        </div>
-                        <data class="price" value="0">Free Trial</data>
-                        <ul class="card-meta-list">
-                            <li class="card-meta-item"><ion-icon name="library-outline" aria-hidden="true"></ion-icon><span class="span">Bulk Messaging</span></li>
-                            <li class="card-meta-item"><ion-icon name="people-outline" aria-hidden="true"></ion-icon><span class="span">Instant Delivery</span></li>
-                        </ul>
-                        <div class="pricing-actions" style="margin-top: 1.5rem;">
-                            <a href="bulksms.php" class="pricing-button primary" style="background: var(--kappel); color: #fff; padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Get Started</a>
-                            <a href="bulksms.php" class="pricing-button outline" style="border: 2px solid var(--kappel); color: var(--kappel); background: transparent; padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 600; text-decoration: none; display: inline-block;">Learn More</a>
-                        </div>
-                    </div>
-                </div>
-            </li>
-        </ul>
-        <a href="register.php" class="btn has-before"><span class="span">Browse more solutions</span><ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon></a>
-    </div>
-</section>
-
-            <!-- Pricing Section -->
-            <section class="section pricing" id="pricing">
-                <div class="container">
-                    <div class="pricing-header"><h2 class="pricing-title">Pricing</h2><div class="pricing-underline"></div><p class="section-text">Affordable, transparent pricing for Kenyan schools</p></div>
-                    <h3 class="pricing-group-title">🏫 Primary Schools</h3>
-                    <div class="pricing-grid">
-                        <div class="pricing-card reveal"><div class="pricing-badge">Public School</div><h4>Single System (Finance or Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['primary']['public']['single']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['primary']['public']['single']['onboarding']); ?></strong></div><div class="price-divider"></div><h4>Both Systems (Finance + Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['primary']['public']['both']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['primary']['public']['both']['onboarding']); ?></strong></div><div class="pricing-actions"><a href="register.php" class="pricing-button primary">Get Started</a><a href="login.php" class="pricing-button outline">Login</a></div></div>
-                        <div class="pricing-card reveal delay-1"><div class="pricing-badge">Private School</div><h4>Single System (Finance or Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['primary']['private']['single']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['primary']['private']['single']['onboarding']); ?></strong></div><div class="price-divider"></div><h4>Both Systems (Finance + Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['primary']['private']['both']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['primary']['private']['both']['onboarding']); ?></strong></div><div class="pricing-actions"><a href="register.php" class="pricing-button primary">Get Started</a><a href="login.php" class="pricing-button outline">Login</a></div></div>
-                    </div>
-                    <h3 class="pricing-group-title">🎓 Secondary Schools</h3>
-                    <div class="pricing-grid">
-                        <div class="pricing-card reveal"><div class="pricing-badge">Public School</div><h4>Single System (Finance or Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['secondary']['public']['single']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['secondary']['public']['single']['onboarding']); ?></strong></div><div class="price-divider"></div><h4>Both Systems (Finance + Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['secondary']['public']['both']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['secondary']['public']['both']['onboarding']); ?></strong></div><div class="pricing-actions"><a href="register.php" class="pricing-button primary">Get Started</a><a href="login.php" class="pricing-button outline">Login</a></div></div>
-                        <div class="pricing-card reveal delay-1"><div class="pricing-badge">Private School</div><h4>Single System (Finance or Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['secondary']['private']['single']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['secondary']['private']['single']['onboarding']); ?></strong></div><div class="price-divider"></div><h4>Both Systems (Finance + Exam)</h4><div class="pricing-price"><span class="currency">KES</span><span class="amount"><?php echo number_format($pricing['secondary']['private']['both']['price']); ?></span></div><div class="pricing-period">per student per term</div><div class="onboarding-fee"><i class="fas fa-handshake"></i> Onboarding Fee: <strong>KES <?php echo number_format($pricing['secondary']['private']['both']['onboarding']); ?></strong></div><div class="pricing-actions"><a href="register.php" class="pricing-button primary">Get Started</a><a href="login.php" class="pricing-button outline">Login</a></div></div>
-                    </div>
-                    <p class="section-text" style="margin-top: 1rem;"><i class="fas fa-info-circle"></i> * Parents Portal, Exam Generator, and Mwalimu AI included in all plans.</p>
-                </div>
-            </section>
-
-            <!-- FAQ Section -->
-            <section class="section faq" id="faq">
-                <div class="container">
-                    <div class="faq-header"><h2 class="faq-title">Frequently Asked Questions</h2><div class="faq-underline"></div></div>
-                    <div class="faq-container">
-                        <div class="faq-item"><div class="faq-question">Is there a free trial available? <i class="fas fa-chevron-down"></i></div><div class="faq-answer">Yes, we offer a 14-day free trial for all our plans. No credit card required.</div></div>
-                        <div class="faq-item"><div class="faq-question">What is Mwalimu AI? <i class="fas fa-chevron-down"></i></div><div class="faq-answer">Mwalimu AI is our AI-powered teaching assistant for the CBC curriculum. It helps create lesson plans, generate assessments, and provides personalized learning support.</div></div>
-                        <div class="faq-item"><div class="faq-question">Can parents access student information? <i class="fas fa-chevron-down"></i></div><div class="faq-answer">Yes! The Parents Portal gives parents real-time access to their children's academic progress, fee balances, and attendance records.</div></div>
-                        <div class="faq-item"><div class="faq-question">What payment methods do you accept? <i class="fas fa-chevron-down"></i></div><div class="faq-answer">We accept M-Pesa, bank transfers, and credit cards with flexible payment options for Kenyan schools.</div></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Blog Section - Dynamically fetching 3 latest posts from database -->
-            <section class="section blog has-bg-image" id="blog" aria-label="blog">
-                <div class="container">
-                    <p class="section-subtitle">Latest Articles</p>
-                    <h2 class="h2 section-title">Get News With EduScore</h2>
-                    
-                    <?php if (!empty($latest_blogs)): ?>
-                        <ul class="grid-list">
-                            <?php foreach ($latest_blogs as $blog): ?>
-                                <li>
-                                    <div class="blog-card">
-<figure class="card-banner img-holder has-after" style="--width: 370; --height: 370;">
-    <?php if ($blog['image_url']): ?>
-        <img src="<?php echo htmlspecialchars($blog['image_url']); ?>" width="370" height="370" loading="lazy" alt="<?php echo htmlspecialchars($blog['title']); ?>" class="img-cover">
-    <?php else: ?>
-        <div class="no-image" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--kappel) 0%, var(--kappel_15) 100%);">
-            <i class="fas fa-newspaper" style="font-size: 4rem; color: white; opacity: 0.5;"></i>
         </div>
-    <?php endif; ?>
-</figure>
-                                        <div class="card-content">
-                                            <a href="blog.php?id=<?php echo $blog['id']; ?>" class="card-btn" aria-label="read more">
-                                                <ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon>
-                                            </a>
-                                            <a href="blog.php?id=<?php echo $blog['id']; ?>" class="card-subtitle"><?php echo htmlspecialchars($blog['category'] ?? 'Education'); ?></a>
-                                            <h3 class="h3">
-                                                <a href="blog.php?id=<?php echo $blog['id']; ?>" class="card-title"><?php echo htmlspecialchars($blog['title']); ?></a>
-                                            </h3>
-                                            <ul class="card-meta-list">
-                                                <li class="card-meta-item">
-                                                    <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
-                                                    <span class="span"><?php echo date('M d, Y', strtotime($blog['created_at'])); ?></span>
-                                                </li>
-                                                <li class="card-meta-item">
-                                                    <ion-icon name="person-outline" aria-hidden="true"></ion-icon>
-                                                    <span class="span"><?php echo htmlspecialchars($blog['author'] ?? 'EduScore Team'); ?></span>
-                                                </li>
-                                            </ul>
-                                            <p class="card-text"><?php echo htmlspecialchars(substr(strip_tags($blog['description'] ?? ''), 0, 100)) . '...'; ?></p>
-                                        </div>
-                                    </div>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <!-- Fallback message when no blogs in database -->
-                        <div style="text-align: center; padding: 3rem;">
-                            <p>No blog posts available yet. Check back soon for updates!</p>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <div class="view-all-blog">
-                        <a href="blog.php" class="btn has-before">
-                            <span class="span">View All Articles</span>
-                            <ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon>
-                        </a>
-                    </div>
-                </div>
-            </section>
+    </div>
+</section>
 
-<!-- Contact Us Section -->
-<section class="section contact-section" id="contact">
+            <!-- Portal Cards Section -->
+<section class="section portal-cards-section">
     <div class="container">
-        <p class="section-subtitle">Contact Us</p>
-        <h2 class="h2 section-title">Get in <span class="span">Touch</span> With Us</h2>
-        <p class="section-text">Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
-        
-        <div id="contactAlert" style="display: none;"></div>
-        
-        <div class="contact-grid">
-            <!-- Contact Info Cards -->
-            <div class="contact-info reveal">
-                <div class="contact-info-grid">
-                    <div class="contact-card">
-                        <div class="contact-card-icon">
-                            <i class="fas fa-map-marker-alt"></i>
-                        </div>
-                        <h3>Our Location</h3>
-                        <p>Ngara - Nairobi, Kenya</p>
-                    </div>
-                    <div class="contact-card">
-                        <div class="contact-card-icon">
-                            <i class="fas fa-phone-alt"></i>
-                        </div>
-                        <h3>Phone Number</h3>
-                        <p><a href="tel:+254799115282">+254 799 115 282</a></p>
-                    </div>
-                    <div class="contact-card">
-                        <div class="contact-card-icon">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <h3>Email Address</h3>
-                        <p><a href="mailto:eduscoreke@gmail.com">eduscoreke@gmail.com</a></p>
-                    </div>
+        <div class="portal-grid">
+            <!-- Analytics Portal Card -->
+            <div class="portal-card" data-type="analytics">
+                <div class="portal-card-icon">
+                    <i class="fas fa-chart-line"></i>
                 </div>
+                <h3 class="portal-card-title">Analytics Portal</h3>
+                <p class="portal-card-desc">Real-time exam analysis, performance tracking, and detailed reports for informed decision-making.</p>
+                <a href="analytics.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
             </div>
             
-            <!-- Contact Form -->
-            <div class="contact-form-container reveal delay-1">
-                <h3 class="contact-form-title">Send Us a Message</h3>
-                <p class="contact-form-subtitle">Fill in the form below, and our team will respond as soon as possible.</p>
-                
-                <form id="contactForm" method="POST">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="name">Your Name <span style="color: red;">*</span></label>
-                            <input type="text" id="name" name="name" class="contact-form-input" placeholder="Enter your full name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Your Email</label>
-                            <input type="email" id="email" name="email" class="contact-form-input" placeholder="Enter your email address">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="phone">Phone Number <span style="color: red;">*</span></label>
-                            <input type="tel" id="phone" name="phone" class="contact-form-input" placeholder="Enter your phone number" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="subject">Subject <span style="color: red;">*</span></label>
-                            <input type="text" id="subject" name="subject" class="contact-form-input" placeholder="What is this regarding?" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="message">Message <span style="color: red;">*</span></label>
-                        <textarea id="message" name="message" class="contact-form-textarea" placeholder="Write your message here..." required></textarea>
-                    </div>
-                    <button type="submit" class="submit-btn" id="submitBtn">
-                        <i class="fas fa-paper-plane"></i> Send Message
-                    </button>
-                </form>
+            <!-- Fee Portal Card -->
+            <div class="portal-card" data-type="fee">
+                <div class="portal-card-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3 class="portal-card-title">Fee Portal</h3>
+                <p class="portal-card-desc">Automated fee management, M-Pesa integration, payment tracking, and instant receipts.</p>
+                <a href="feesystem.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+            </div>
+            
+            <!-- Bulk SMS Portal Card -->
+            <div class="portal-card" data-type="sms">
+                <div class="portal-card-icon">
+                    <i class="fas fa-sms"></i>
+                </div>
+                <h3 class="portal-card-title">Bulk SMS Portal</h3>
+                <p class="portal-card-desc">Send instant alerts, reminders, and announcements to parents and staff effortlessly.</p>
+                <a href="bulksms.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+            </div>
+            
+            <!-- Mwalimu Hub Card -->
+            <div class="portal-card" data-type="mwalimu">
+                <div class="portal-card-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h3 class="portal-card-title">Mwalimu Hub</h3>
+                <p class="portal-card-desc">AI-powered teaching assistant for CBC curriculum, lesson plans, and assessments.</p>
+                <a href="mwalimu-hub.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+            </div>
+            
+            <!-- Parents Portal Card -->
+            <div class="portal-card" data-type="parents">
+                <div class="portal-card-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="portal-card-title">Parents Portal</h3>
+                <p class="portal-card-desc">Real-time access to children's academic progress, fee balances, and attendance.</p>
+                <a href="parents-portal.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     </div>
 </section>
-            <!-- CTA Section -->
-            <section class="cta" id="cta">
-                <div class="cta-container"><h2 class="cta-title">Ready to Transform Your School?</h2><p class="cta-subtitle">Join thousands of Kenyan schools using EduScore to streamline operations and enhance educational outcomes.</p><a href="register.php" class="btn">Start Free Trial</a></div>
-            </section>
+
+
+
         </article>
     </main>
 
@@ -2600,7 +2870,7 @@ try {
         <div class="footer-top section">
             <div class="container grid-list">
                 <div class="footer-brand"><a href="#" class="logo"><img src="/images/logo.png" alt="EduScore logo"></a><p class="footer-brand-text">Modern school management system for Kenyan educational institutions.</p><div class="wrapper"><span class="span">Add:</span><address class="address">Ngara - Nairobi, Kenya</address></div><div class="wrapper"><span class="span">Call:</span><a href="tel:+254799115282" class="footer-link">+254 799 115 282</a></div><div class="wrapper"><span class="span">Email:</span><a href="mailto:eduscoreke@gmail.com" class="footer-link">eduscoreke@gmail.com</a></div></div>
-                <ul class="footer-list"><li><p class="footer-list-title">Online Platform</p></li><li><a href="#about" class="footer-link">About</a></li><li><a href="#courses" class="footer-link">Courses</a></li><li><a href="#" class="footer-link">Instructor</a></li><li><a href="#" class="footer-link">Events</a></li><li><a href="#" class="footer-link">Purchase Guide</a></li></ul>
+                <ul class="footer-list"><li><p class="footer-list-title">Online Platform</p></li><li><a href="about.php" class="footer-link">About</a></li><li><a href="#courses" class="footer-link">Courses</a></li><li><a href="#" class="footer-link">Instructor</a></li><li><a href="#" class="footer-link">Events</a></li><li><a href="#" class="footer-link">Purchase Guide</a></li></ul>
                 <ul class="footer-list"><li><p class="footer-list-title">Links</p></li><li><a href="#contact" class="footer-link">Contact Us</a></li><li><a href="#" class="footer-link">Gallery</a></li><li><a href="blog.php" class="footer-link">News & Articles</a></li><li><a href="#faq" class="footer-link">FAQ's</a></li><li><a href="login.php" class="footer-link">Sign In/Registration</a></li></ul>
                 <div class="footer-list"><p class="footer-list-title">Newsletter</p><p class="footer-list-text">Enter your email address to register to our newsletter subscription</p><form action="" class="newsletter-form"><input type="email" name="email_address" placeholder="Your email" required class="input-field"><button type="submit" class="btn has-before"><span class="span">Subscribe</span><ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon></button></form><ul class="social-list"><li><a href="#" class="social-link"><ion-icon name="logo-facebook"></ion-icon></a></li><li><a href="#" class="social-link"><ion-icon name="logo-linkedin"></ion-icon></a></li><li><a href="#" class="social-link"><ion-icon name="logo-instagram"></ion-icon></a></li><li><a href="#" class="social-link"><ion-icon name="logo-twitter"></ion-icon></a></li><li><a href="#" class="social-link"><ion-icon name="logo-youtube"></ion-icon></a></li></ul></div>
             </div>
@@ -2662,6 +2932,7 @@ try {
                 window.scrollTo(0, parseInt(scrollY || '0') * -1);
             }
         }
+
         
         const closeNavbar = function () { 
             navbar.classList.remove("active"); 
@@ -2675,16 +2946,6 @@ try {
         
         if (overlay) {
             overlay.addEventListener("click", closeNavbar);
-        }
-
-        // Mobile Dropdown Toggle
-        const solutionsDropdown = document.getElementById('solutionsDropdown');
-        if (solutionsDropdown && window.innerWidth < 992) {
-            solutionsDropdown.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.classList.toggle('active');
-            });
         }
 
         // Header active on scroll
@@ -2729,7 +2990,7 @@ try {
         }, { threshold: 0.15 });
         reveals.forEach(el => revealObserver.observe(el));
 
-        // Stats counter animation
+        // Stats counter animation function
         function animateNumber(element, start, end, duration) {
             let startTimestamp = null;
             const step = (timestamp) => {
@@ -2741,13 +3002,28 @@ try {
             };
             window.requestAnimationFrame(step);
         }
+        
+        // Fetch stats for both hero stats and original stats section
         function fetchStats() {
             fetch('ajax/get_stats.php').then(response => response.json()).then(data => {
                 if (data.success) {
+                    // Hero stats
+                    const heroSchools = document.getElementById('heroSchoolsCount');
+                    const heroStudents = document.getElementById('heroStudentsCount');
+                    const heroTeachers = document.getElementById('heroTeachersCount');
+                    const heroReports = document.getElementById('heroReportsCount');
+                    
+                    if (heroSchools) animateNumber(heroSchools, 0, data.data.schools, 1500);
+                    if (heroStudents) animateNumber(heroStudents, 0, data.data.students, 1500);
+                    if (heroTeachers) animateNumber(heroTeachers, 0, data.data.teachers, 1500);
+                    if (heroReports) animateNumber(heroReports, 0, data.data.reports, 1500);
+                    
+                    // Original stats section (if it exists)
                     const schoolsEl = document.getElementById('schoolsCount');
                     const studentsEl = document.getElementById('studentsCount');
                     const teachersEl = document.getElementById('teachersCount');
                     const reportsEl = document.getElementById('reportsCount');
+                    
                     if (schoolsEl) animateNumber(schoolsEl, 0, data.data.schools, 1500);
                     if (studentsEl) animateNumber(studentsEl, 0, data.data.students, 1500);
                     if (teachersEl) animateNumber(teachersEl, 0, data.data.teachers, 1500);
@@ -2755,12 +3031,14 @@ try {
                 }
             }).catch(error => console.error('Error fetching stats:', error));
         }
-        const statsSection = document.querySelector('.stats-counter');
-        if (statsSection) {
+        
+        // Trigger stats when hero section is visible
+        const heroSection = document.querySelector('.hero');
+        if (heroSection) {
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => { if (entry.isIntersecting) { fetchStats(); observer.unobserve(entry.target); } });
             }, { threshold: 0.3 });
-            observer.observe(statsSection);
+            observer.observe(heroSection);
         }
 
         // Chat Widget
@@ -2795,107 +3073,10 @@ try {
         
         window.addEventListener('resize', function() {
             if (window.innerWidth >= 992) {
-                if (solutionsDropdown) solutionsDropdown.classList.remove('active');
                 body.classList.remove('navbar-open');
                 body.style.top = '';
             }
         });
-        
-// Contact Form with AJAX - No page reload
-const contactForm = document.getElementById('contactForm');
-const submitBtn = document.getElementById('submitBtn');
-const contactAlert = document.getElementById('contactAlert');
-
-if (contactForm) {
-    contactForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        // Get form values
-        const name = document.getElementById('name')?.value.trim();
-        const email = document.getElementById('email')?.value.trim();
-        const phone = document.getElementById('phone')?.value.trim();
-        const subject = document.getElementById('subject')?.value.trim();
-        const message = document.getElementById('message')?.value.trim();
-        
-        // Client-side validation
-        if (!name) {
-            showAlert('Please enter your name', 'error');
-            return;
-        }
-        if (!phone) {
-            showAlert('Please enter your phone number', 'error');
-            return;
-        }
-        if (!subject) {
-            showAlert('Please enter a subject', 'error');
-            return;
-        }
-        if (!message) {
-            showAlert('Please enter your message', 'error');
-            return;
-        }
-        if (email && !isValidEmail(email)) {
-            showAlert('Please enter a valid email address', 'error');
-            return;
-        }
-        
-        // Prepare form data
-        const formData = new FormData();
-        formData.append('name', name);
-        formData.append('email', email);
-        formData.append('phone', phone);
-        formData.append('subject', subject);
-        formData.append('message', message);
-        
-        // Show loading state
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        submitBtn.disabled = true;
-        
-        try {
-            const response = await fetch('ajax/save_contact.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            
-            if (result.success) {
-                showAlert(result.message, 'success');
-                contactForm.reset();
-            } else {
-                showAlert('Error: ' + result.message, 'error');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showAlert('An error occurred. Please try again later.', 'error');
-        } finally {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }
-    });
-}
-
-function showAlert(message, type) {
-    const alertDiv = document.getElementById('contactAlert');
-    if (alertDiv) {
-        alertDiv.style.display = 'block';
-        alertDiv.className = 'alert alert-' + type;
-        alertDiv.innerHTML = '<i class="fas fa-' + (type === 'success' ? 'check-circle' : 'exclamation-triangle') + '"></i> ' + message;
-        
-        // Auto hide after 5 seconds
-        setTimeout(() => {
-            alertDiv.style.opacity = '0';
-            setTimeout(() => {
-                alertDiv.style.display = 'none';
-                alertDiv.style.opacity = '1';
-            }, 500);
-        }, 5000);
-    }
-}
-
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
     </script>
 </body>
 </html>
