@@ -299,3 +299,17 @@ Data: {
     "base_url": "http:\/\/localhost\/eduscore"
 }
 --------------------------------------------------------------------------------
+[2026-05-21 10:49:36] [info] Localhost config loaded
+Data: {
+    "database": "srms",
+    "environment": "sandbox",
+    "base_url": "http:\/\/localhost\/eduscore"
+}
+--------------------------------------------------------------------------------
+[2026-05-21 10:49:44] [info] Localhost config loaded
+Data: {
+    "database": "srms",
+    "environment": "sandbox",
+    "base_url": "http:\/\/localhost\/eduscore"
+}
+--------------------------------------------------------------------------------

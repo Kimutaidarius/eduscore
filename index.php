@@ -587,470 +587,597 @@ try {
         :is(.course, .blog) .section-title { margin-block-end: 40px; }
         
 /*-----------------------------------*\
-  #HEADER - GLASS MORPHISM & RESPONSIVE (FIXED)
+  #HEADER - GLASSMORPHISM & HORIZONTAL NAV
 \*-----------------------------------*/
 
-.header .btn { display: none; }
-
-/* ---------- 1. GLASS MORPHISM HEADER ---------- */
+/* Base Header Styles - Clean Glassmorphism */
 .header {
   position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 40px);
-  max-width: 1400px;
-  padding-block: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  border-radius: 20px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   z-index: 1000;
-  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* ---------- 2. STICKY ACTIVE STATE WITH ANIMATION ---------- */
+/* Sticky Header with Reduced Height */
 .header.active {
-  top: 12px;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  animation: slideIn 0.4s ease forwards;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  padding-block: 0;
 }
 
-@keyframes slideIn {
-  0% { transform: translateY(-100%) translateX(-50%); }
-  100% { transform: translateY(0) translateX(-50%); }
+/* Dark Mode Header */
+body.dark-mode .header {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* ---------- FLOATING HOVER EFFECT ---------- */
-.header:hover {
-  transform: translateX(-50%) translateY(-2px);
+body.dark-mode .header.active {
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
-/* Header Container */
+/* Header Container - Centered Layout */
 .header .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 15px;
-  max-width: 100%;
-  overflow: visible;
-  padding: 0 15px;
+  gap: 24px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 14px 32px;
+  transition: padding 0.25s ease;
 }
 
-/* Logo */
-.logo { flex-shrink: 0; }
+.header.active .container {
+  padding: 8px 32px;
+}
+
+/* Logo - Clean and Crisp */
+.logo {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
 .logo img {
   width: auto;
-  height: 40px;
-  max-width: 120px;
+  height: 44px;
+  max-width: 150px;
   object-fit: contain;
+  transition: height 0.25s ease;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
 }
 
-/* Header Actions */
+.header.active .logo img {
+  height: 38px;
+}
+
+/* ============================================ */
+/* DESKTOP NAVIGATION - HORIZONTAL (ONE LINE)    */
+/* ============================================ */
+.navbar {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+/* The navigation list stays in one row on desktop */
+.navbar-list {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Nav Links - Clean Typography */
+.navbar-link {
+  font-weight: 500;
+  color: var(--eerie-black-1);
+  transition: color 0.2s ease;
+  position: relative;
+  padding: 8px 0;
+  font-size: 1.55rem;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+body.dark-mode .navbar-link {
+  color: #f1f5f9;
+}
+
+.navbar-link:hover {
+  color: #00BFFF;
+}
+
+/* Underline effect on hover */
+.navbar-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2.5px;
+  background: #00BFFF;
+  transition: width 0.25s ease;
+  border-radius: 2px;
+}
+
+.navbar-link:hover::after {
+  width: 100%;
+}
+
+/* Header Actions - Right Side */
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 18px;
   flex-shrink: 0;
 }
 
-/* Theme Toggle */
+/* Theme Toggle - Glass Circle */
 .theme-toggle {
-  background: none;
+  background: rgba(0, 0, 0, 0.04);
   border: none;
-  font-size: 2rem;
+  font-size: 1.8rem;
   cursor: pointer;
   color: var(--eerie-black-1);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
-  transition: all 0.3s ease;
+  padding: 10px;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
 }
+
+body.dark-mode .theme-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
 .theme-toggle:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  background: rgba(0, 191, 255, 0.12);
 }
+
 .theme-toggle .fa-sun { display: none; }
 body.dark-mode .theme-toggle .fa-moon { display: none; }
 body.dark-mode .theme-toggle .fa-sun { display: block; }
 
-/* Portal Buttons Container */
+/* Premium Portal Buttons - Glass Style */
 .portal-buttons-header {
   display: flex;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 12px;
 }
 
-
-
-/* ---------- 3. PREMIUM PORTAL BUTTONS (GLASS) ---------- */
 .portal-btn {
-  padding: 10px 18px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 9px 22px;
+  border-radius: 40px;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-.portal-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 191, 255, 0.22);
+  gap: 10px;
+  font-size: 1.35rem;
+  letter-spacing: -0.2px;
+  backdrop-filter: blur(4px);
 }
 
 .portal-btn-analytics {
   background: #00BFFF;
   color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
+  border: none;
 }
+
 .portal-btn-analytics:hover {
   background: #009ac9;
   transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 191, 255, 0.25);
 }
 
 .portal-btn-finance {
-  background: transparent;
+  background: rgba(0, 191, 255, 0.08);
   color: #00BFFF;
-  border: 1.5px solid #00BFFF;
+  border: 1px solid rgba(0, 191, 255, 0.4);
 }
+
 .portal-btn-finance:hover {
   background: #00BFFF;
   color: #ffffff;
   transform: translateY(-2px);
+  border-color: transparent;
 }
 
-/* ---------- 4. GLASS MORPHISM MOBILE NAVBAR (DRAWER) ---------- */
-.navbar {
-  position: fixed;
-  top: 0;
-  left: -100%;
-  width: 85%;
-  max-width: 340px;
-  height: 100vh;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-right: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  z-index: 1001;
-  transition: left 0.35s ease;
-  overflow-y: auto;
-}
-.navbar.active { left: 0; }
-
-/* Prevent body scroll when navbar is open */
-body.navbar-open {
-  overflow: hidden;
-  position: fixed;
-  width: 100%;
-}
-
-.navbar .wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  border-block-end: 1px solid var(--platinum);
-}
-
-.nav-close-btn {
-  background-color: var(--white);
-  box-shadow: var(--shadow-2);
-  padding: 8px;
-  border-radius: var(--radius-circle);
-  font-size: 2rem;
-  cursor: pointer;
+/* Menu Button (Hidden on Desktop) */
+.menu-btn {
+  background: rgba(0, 0, 0, 0.04);
   border: none;
-  display: flex;
+  font-size: 2.2rem;
+  cursor: pointer;
+  color: var(--eerie-black-1);
+  display: none;
   align-items: center;
   justify-content: center;
-}
-.nav-close-btn:is(:hover, :focus) {
-  background-color: var(--kappel);
-  color: var(--white);
-}
-
-.navbar-list {
-  padding: 15px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.navbar-item:not(:last-child) { border-block-end: 1px solid var(--platinum); }
-
-/* ---------- 5. PREMIUM NAV LINKS (GLASS HOVER) ---------- */
-.navbar-link {
-  position: relative;
-  padding: 10px 16px;
+  padding: 8px;
+  transition: all 0.2s ease;
   border-radius: 12px;
-  font-weight: 600;
-  color: #111827;
-  transition: all 0.3s ease;
-  display: block;
-  text-decoration: none;
-}
-.navbar-link:hover {
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #00BFFF;
-  transform: translateY(-1px);
+  width: 44px;
+  height: 44px;
 }
 
-/* Mobile Portal Buttons */
-.mobile-portal-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 15px;
-  padding: 15px 20px;
-  border-top: 1px solid var(--platinum);
-}
-.mobile-portal-btn {
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1.4rem;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  text-align: center;
-}
-.mobile-portal-btn-analytics {
-  background: #00BFFF;
-  color: #ffffff;
-}
-.mobile-portal-btn-analytics:hover { background: #009ac9; }
-.mobile-portal-btn-finance {
-  background: transparent;
-  color: #00BFFF;
-  border: 1.5px solid #00BFFF;
-}
-.mobile-portal-btn-finance:hover {
-  background: #00BFFF;
-  color: #ffffff;
+body.dark-mode .menu-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
 }
 
-/* ---------- 6. GLASS MORPHISM DROPDOWN ---------- */
-.dropdown { position: relative; }
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 15px);
-  left: 0;
-  min-width: 240px;
-  padding: 12px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  transition: all 0.3s ease;
-  z-index: 100;
-}
-.dropdown.active .dropdown-menu { 
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+.menu-btn:hover {
+  background: rgba(0, 191, 255, 0.12);
 }
 
-/* Dropdown Items Hover Effect */
-.dropdown-menu li a {
-  display: flex;
-  align-items: center;
-  padding: 12px 14px;
-  border-radius: 12px;
-  color: #111827;
-  transition: all 0.3s ease;
-  text-decoration: none;
-}
-.dropdown-menu li a:hover {
-  background: rgba(255, 255, 255, 0.22);
-  color: #00BFFF;
-  transform: translateX(4px);
+/* ============================================ */
+/* MOBILE NAVBAR DRAWER (Right Side)            */
+/* ============================================ */
+@media (max-width: 991px) {
+  .navbar {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: min(85%, 360px);
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+    z-index: 1001;
+    transition: right 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    overflow-y: auto;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  body.dark-mode .navbar {
+    background: rgba(15, 23, 42, 0.96);
+    backdrop-filter: blur(24px);
+  }
+
+  .navbar.active {
+    right: 0;
+  }
+
+  /* Mobile inner wrapper */
+  .navbar .wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  body.dark-mode .navbar .wrapper {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-close-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--eerie-black-1);
+    width: 44px;
+    height: 44px;
+  }
+
+  body.dark-mode .nav-close-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+  }
+
+  /* Mobile nav list - vertical */
+  .navbar-list {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .navbar-item {
+    width: 100%;
+  }
+
+  .navbar-link {
+    display: block;
+    padding: 14px 16px;
+    font-size: 1.6rem;
+    font-weight: 500;
+    border-radius: 14px;
+    transition: all 0.2s;
+    white-space: normal;
+  }
+
+  .navbar-link:hover {
+    background: rgba(0, 191, 255, 0.08);
+    color: #00BFFF;
+  }
+
+  .navbar-link::after {
+    display: none;
+  }
+
+  /* Mobile Portal Buttons inside drawer */
+  .mobile-portal-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  body.dark-mode .mobile-portal-buttons {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .mobile-portal-btn {
+    padding: 14px 20px;
+    border-radius: 44px;
+    font-weight: 600;
+    font-size: 1.45rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  .mobile-portal-btn-analytics {
+    background: #00BFFF;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
+  }
+
+  .mobile-portal-btn-analytics:hover {
+    background: #009ac9;
+    transform: translateY(-2px);
+  }
+
+  .mobile-portal-btn-finance {
+    background: transparent;
+    color: #00BFFF;
+    border: 1.5px solid #00BFFF;
+  }
+
+  .mobile-portal-btn-finance:hover {
+    background: #00BFFF;
+    color: #ffffff;
+  }
+
+  /* Hide desktop portal buttons on mobile */
+  .portal-buttons-header {
+    display: none;
+  }
+
+  /* Show menu button */
+  .menu-btn {
+    display: flex;
+  }
+
+  /* Adjust container padding */
+  .header .container {
+    padding: 12px 20px;
+  }
+
+  .header.active .container {
+    padding: 8px 20px;
+  }
 }
 
-/* Dropdown Arrow Animation */
-.dropdown-arrow {
-  transition: transform 0.3s ease;
-  display: inline-block;
-  margin-left: 5px;
-  font-size: 1rem;
-}
-.dropdown.active .dropdown-arrow { transform: rotate(180deg); }
-
-/* ---------- 7. OVERLAY WITH BLUR (GLASS) ---------- */
+/* Overlay for mobile menu */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   opacity: 0;
   pointer-events: none;
-  transition: 0.3s ease;
+  transition: opacity 0.25s ease;
   z-index: 1000;
 }
+
 .overlay.active {
   opacity: 1;
   pointer-events: all;
 }
 
-/* Menu Button */
-.menu-btn {
-  background: none;
-  border: none;
-  font-size: 2.4rem;
-  cursor: pointer;
-  color: var(--eerie-black-1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px;
-  flex-shrink: 0;
-  transition: all 0.3s ease;
-}
-.menu-btn:hover {
-  transform: scale(1.1);
+/* Prevent body scroll when mobile menu open */
+body.navbar-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
 }
 
-/* ---------- 8. DARK MODE GLASS EFFECTS ---------- */
-body.dark-mode .header,
-body.dark-mode .navbar,
-body.dark-mode .dropdown-menu {
-  background: rgba(17, 25, 40, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+/* ============================================ */
+/* RESPONSIVE FINE-TUNING                       */
+/* ============================================ */
+
+/* Large Desktop - Extra spacing */
+@media (min-width: 1400px) {
+  .header .container {
+    max-width: 1320px;
+    padding: 16px 40px;
+  }
+  
+  .header.active .container {
+    padding: 10px 40px;
+  }
+  
+  .navbar-list {
+    gap: 44px;
+  }
 }
 
-body.dark-mode .navbar-link {
-  color: #e0e0e0;
-}
-
-body.dark-mode .dropdown-menu li a {
-  color: #e0e0e0;
-}
-
-body.dark-mode .dropdown-menu li a:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #00BFFF;
-}
-
-/* ---------- 9. FULLY RESPONSIVE: DESKTOP ---------- */
+/* Desktop Standard */
 @media (min-width: 992px) {
-  .menu-btn { display: none; }
-
+  /* Reset mobile styles */
   .navbar {
     position: static;
-    left: auto !important;
+    right: auto;
     width: auto;
-    max-width: none;
     height: auto;
     background: none;
-    transform: none !important;
+    backdrop-filter: none;
+    box-shadow: none;
+    padding: 0;
     overflow: visible;
     display: flex;
-    align-items: center;
-    box-shadow: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    flex: 1;
+    justify-content: center;
   }
-
+  
+  .navbar .wrapper,
+  .nav-close-btn,
+  .mobile-portal-buttons {
+    display: none;
+  }
+  
+  .navbar-list {
+    flex-direction: row;
+    gap: 36px;
+  }
+  
+  .navbar-link {
+    padding: 8px 0;
+    font-size: 1.55rem;
+  }
+  
+  .menu-btn {
+    display: none;
+  }
+  
+  .overlay {
+    display: none;
+  }
+  
   body.navbar-open {
     overflow: auto;
     position: relative;
     width: auto;
+    height: auto;
   }
+  
+  .portal-buttons-header {
+    display: flex;
+  }
+}
 
-  .navbar .wrapper { display: none; }
-
+/* Tablet Landscape (between 768px and 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
   .navbar-list {
-    flex-direction: row;
-    padding: 0;
-    gap: 30px;
-    align-items: center;
+    gap: 12px;
   }
-
-  .navbar-item:not(:last-child) { border-block-end: none; }
-  .navbar-link { padding-block: 0; }
-  .mobile-portal-buttons { display: none; }
-
-  /* Desktop Dropdown - Glass */
-  .dropdown { position: relative; }
-  .dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 220px;
-    padding: 12px;
-    margin: 0;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(10px);
-    transition: all 0.3s ease;
-    z-index: 10;
-    display: block;
+  
+  .navbar-link {
+    font-size: 1.4rem;
+    padding: 10px 12px;
   }
-  .dropdown:hover .dropdown-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-  .dropdown.active .dropdown-menu {
-    display: block;
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .dropdown-arrow { display: inline-block; }
-  .overlay { display: none; }
 }
 
-/* ---------- 10. RESPONSIVE: TABLET & MOBILE ---------- */
-@media (max-width: 991px) {
-  .portal-buttons-header { display: none; }
-  .header .btn { display: none; }
-}
-
-/* Small Mobile Adjustments */
+/* Mobile Small */
 @media (max-width: 480px) {
-  .header {
-    width: calc(100% - 20px);
-    top: 10px;
-    padding-block: 8px;
+  .header .container {
+    padding: 10px 16px;
   }
-  .header.active { top: 6px; }
+  
   .logo img {
-    height: 32px;
-    max-width: 100px;
+    height: 34px;
   }
-  .navbar-link { font-size: 1.4rem; }
+  
+  .header.active .logo img {
+    height: 30px;
+  }
+  
+  .menu-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 2rem;
+  }
+  
+  .theme-toggle {
+    width: 38px;
+    height: 38px;
+    font-size: 1.6rem;
+  }
+  
+  .navbar {
+    width: 85%;
+    padding: 20px 16px;
+  }
+  
+  .navbar-link {
+    font-size: 1.5rem;
+    padding: 12px 14px;
+  }
+  
+  .mobile-portal-btn {
+    font-size: 1.35rem;
+    padding: 12px 16px;
+  }
+}
+
+/* Remove any leftover gradient backgrounds */
+.header,
+.header.active,
+.navbar,
+.navbar.active,
+.portal-btn,
+.mobile-portal-btn,
+.theme-toggle,
+.menu-btn {
+  background-image: none !important;
+}
+
+/* Ensure crisp text rendering */
+.navbar-link,
+.portal-btn,
+.mobile-portal-btn {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 /*-----------------------------------*\
   #HERO SECTION WITH STATS - OPTIMIZED SPACING
 \*-----------------------------------*/
 
-/* Hero Section - Appears just below header */
+/* Hero Section - Clean spacing below fixed header */
 .hero {
     position: relative;
-    padding-top: 70px;
+    padding-top: 110px; /* Matches header height + comfortable gap */
     padding-bottom: 70px;
     background: linear-gradient(135deg, 
-        rgba(0, 191, 255, 0.05) 50%,
-        rgba(0, 191, 255, 0.02) 25%, 
-        transparent 50%);
+        rgba(0, 191, 255, 0.03) 0%,
+        rgba(0, 191, 255, 0.01) 100%);
     overflow: hidden;
 }
 
@@ -1087,12 +1214,12 @@ body.dark-mode .dropdown-menu li a:hover {
     gap: 8px;
     background: linear-gradient(135deg, #f97316, #ea580c);
     color: white;
-    padding: 8px 18px;
+    padding: 8px 20px;
     border-radius: 50px;
     font-size: 1.4rem;
     font-weight: 600;
-    margin-bottom: 15px;
-    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.25);
     animation: pulse 2s infinite;
 }
 
@@ -1103,26 +1230,55 @@ body.dark-mode .dropdown-menu li a:hover {
 /* Pulse Animation */
 @keyframes pulse {
     0% {
-        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.25);
     }
     50% {
-        box-shadow: 0 4px 25px rgba(249, 115, 22, 0.6);
+        box-shadow: 0 4px 25px rgba(249, 115, 22, 0.5);
     }
     100% {
-        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.25);
     }
 }
 
 /* Hero Title */
+.hero .section-title {
+    font-size: 4.8rem;
+    line-height: 1.2;
+    margin-bottom: 20px;
+}
+
 .hero-text {
     color: var(--eerie-black-1);
     font-size: var(--fs-4);
     text-align: center;
-    margin-block: 18px 20px;
+    margin-block: 0 25px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .hero .btn { 
     margin-inline: auto; 
+}
+
+/* Button Group */
+.hero-button-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.btn-primary-custom,
+.btn-secondary-custom {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-primary-custom:hover,
+.btn-secondary-custom:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
 /* Hero Stats Section */
@@ -1130,12 +1286,13 @@ body.dark-mode .dropdown-menu li a:hover {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
-    margin-top: 40px;
-    padding: 30px;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
+    margin-top: 50px;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .hero-stat-item {
@@ -1186,20 +1343,31 @@ body.dark-mode .dropdown-menu li a:hover {
     display: block;
 }
 
+/* Dark Mode Adjustments */
+body.dark-mode .hero-stats {
+    background: rgba(17, 25, 40, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Responsive: Tablet and Mobile */
 @media (min-width: 768px) {
     .hero-stats {
         grid-template-columns: repeat(4, 1fr);
+        padding: 35px 25px;
     }
     
     .hero-stat-number {
         font-size: 3.5rem;
     }
+    
+    .hero .section-title {
+        font-size: 5.2rem;
+    }
 }
 
 @media (min-width: 992px) {
     .hero {
-        padding-top: 100px;
+        padding-top: 120px;
     }
     
     .hero .container {
@@ -1217,16 +1385,23 @@ body.dark-mode .dropdown-menu li a:hover {
         margin-right: auto;
     }
     
-    .hero-text {
+    .hero .section-title {
         text-align: left;
     }
     
+    .hero-text {
+        text-align: left;
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
     .hero-button-group {
-        justify-content: flex-start !important;
+        justify-content: flex-start;
     }
     
     .hero-stats {
         justify-content: flex-start;
+        margin-top: 40px;
     }
 }
 
@@ -1234,36 +1409,59 @@ body.dark-mode .dropdown-menu li a:hover {
     .hero-banner {
         display: none;
     }
+    
+    .hero {
+        padding-top: 100px;
+    }
 }
 
 @media (max-width: 768px) {
     .hero {
-        padding-top: 85px;
+        padding-top: 90px;
         padding-bottom: 60px;
+    }
+    
+    .hero .section-title {
+        font-size: 3.2rem;
     }
     
     .cbe-badge {
         margin-left: auto;
         margin-right: auto;
         font-size: 1.2rem;
-        padding: 6px 14px;
+        padding: 6px 16px;
         margin-bottom: 15px;
+    }
+    
+    .hero-button-group {
+        gap: 0.8rem;
+    }
+    
+    .btn-primary-custom,
+    .btn-secondary-custom {
+        padding: 10px 18px;
+        font-size: 1.3rem;
     }
 }
 
 @media (max-width: 480px) {
     .hero {
-        padding-top: 75px;
+        padding-top: 85px;
         padding-bottom: 50px;
     }
     
+    .hero .section-title {
+        font-size: 2.6rem;
+    }
+    
     .hero-stats {
-        padding: 20px;
+        padding: 20px 15px;
         gap: 10px;
+        margin-top: 35px;
     }
     
     .hero-stat-item {
-        padding: 10px;
+        padding: 8px;
     }
     
     .hero-stat-number {
@@ -1273,9 +1471,20 @@ body.dark-mode .dropdown-menu li a:hover {
     .hero-stat-label {
         font-size: 1rem;
     }
+    
+    .hero-button-group {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn-primary-custom,
+    .btn-secondary-custom {
+        width: 100%;
+        justify-content: center;
+    }
 }
 /*-----------------------------------*\
-  #PORTAL CARDS SECTION - GLASSMORPHISM
+  #PORTAL CARDS SECTION - SQUARE CARDS WITH CLEAN ANIMATIONS
 \*-----------------------------------*/
 
 .portal-cards-section {
@@ -1308,7 +1517,7 @@ body.dark-mode .dropdown-menu li a:hover {
     padding: 0 20px;
 }
 
-/* Glassmorphism Card */
+/* SQUARE GLASS CARD - Fixed aspect ratio */
 .portal-card {
     position: relative;
     background: rgba(255, 255, 255, 0.08);
@@ -1321,61 +1530,48 @@ body.dark-mode .dropdown-menu li a:hover {
     border: 1px solid rgba(255, 255, 255, 0.18);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-/* Glassmorphism hover effect */
+/* Clean hover animation - scale up only, no color changes */
 .portal-card:hover {
-    transform: translateY(-10px);
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Animated gradient border on hover */
+/* No gradient border on hover - removed */
 .portal-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 3px;
-    background: linear-gradient(90deg, 
-        transparent, 
-        rgba(0, 191, 255, 0.8), 
-        rgba(0, 191, 255, 0.8), 
-        transparent);
-    transition: left 0.6s ease;
+    display: none;
 }
 
-.portal-card:hover::before {
-    left: 100%;
-}
-
-/* Card icon with glass effect */
+/* Card icon - clean and stable */
 .portal-card-icon {
-    width: 85px;
-    height: 85px;
+    width: 80px;
+    height: 80px;
     background: rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-radius: 24px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 25px;
+    margin: 0 auto 20px;
     font-size: 2.8rem;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Icon animation on hover - subtle bounce */
 .portal-card:hover .portal-card-icon {
-    transform: scale(1.05) translateY(-5px);
-    background: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: scale(1.08) translateY(-4px);
 }
 
-/* Card title with glass effect */
+/* Card title - clean gradient text */
 .portal-card-title {
     font-size: 1.8rem;
     font-weight: 700;
@@ -1385,6 +1581,12 @@ body.dark-mode .dropdown-menu li a:hover {
     color: transparent;
     margin-bottom: 12px;
     letter-spacing: -0.3px;
+    transition: transform 0.3s ease;
+}
+
+/* Title animation on hover */
+.portal-card:hover .portal-card-title {
+    transform: translateY(-2px);
 }
 
 /* Dark mode title */
@@ -1402,88 +1604,84 @@ body.dark-mode .portal-card-title {
     margin-bottom: 25px;
     line-height: 1.6;
     opacity: 0.85;
+    transition: opacity 0.3s ease;
 }
 
-/* Glass button */
+/* GET STARTED BUTTON - Clean and prominent */
 .portal-card-btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 28px;
+    background: rgba(0, 191, 255, 0.15);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1.5px solid rgba(0, 191, 255, 0.5);
     border-radius: 50px;
     font-weight: 600;
-    font-size: 1.3rem;
+    font-size: 1.35rem;
     transition: all 0.3s ease;
     text-decoration: none;
-    color: var(--kappel);
+    color: #00BFFF;
+    cursor: pointer;
+    width: fit-content;
+    margin: 0 auto;
 }
 
+/* Button hover animation - slide and glow */
 .portal-card-btn:hover {
-    background: rgba(0, 191, 255, 0.2);
-    border-color: rgba(0, 191, 255, 0.5);
-    transform: translateX(5px);
-    gap: 12px;
+    background: #00BFFF;
+    border-color: #00BFFF;
+    color: #ffffff;
+    transform: translateX(6px);
+    gap: 14px;
+    box-shadow: 0 4px 15px rgba(0, 191, 255, 0.35);
 }
 
-/* Individual portal card icon colors (glass style) */
+/* Remove any hover color changes on card background */
+.portal-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .portal-card:hover {
+    background: rgba(17, 25, 40, 0.55);
+}
+
+/* Icon colors - fixed, no hover background changes */
 .portal-card[data-type="analytics"] .portal-card-icon { 
     color: #00BFFF;
-    text-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
 }
-.portal-card[data-type="analytics"]:hover .portal-card-icon { 
-    background: rgba(0, 191, 255, 0.2);
-    box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
-}
-
 .portal-card[data-type="fee"] .portal-card-icon { 
     color: #10B981;
-    text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
-.portal-card[data-type="fee"]:hover .portal-card-icon { 
-    background: rgba(16, 185, 129, 0.2);
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-}
-
 .portal-card[data-type="sms"] .portal-card-icon { 
     color: #F59E0B;
-    text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
 }
-.portal-card[data-type="sms"]:hover .portal-card-icon { 
-    background: rgba(245, 158, 11, 0.2);
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+.portal-card[data-type="timetable"] .portal-card-icon { 
+    color: #EC4899;
 }
-
 .portal-card[data-type="mwalimu"] .portal-card-icon { 
     color: #8B5CF6;
-    text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
 }
-.portal-card[data-type="mwalimu"]:hover .portal-card-icon { 
-    background: rgba(139, 92, 246, 0.2);
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+.portal-card[data-type="parents"] .portal-card-icon { 
+    color: #F59E0B;
 }
 
-.portal-card[data-type="parents"] .portal-card-icon { 
-    color: #EC4899;
-    text-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+/* No hover background changes on icons */
+.portal-card:hover .portal-card-icon {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
-.portal-card[data-type="parents"]:hover .portal-card-icon { 
-    background: rgba(236, 72, 153, 0.2);
-    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+
+body.dark-mode .portal-card:hover .portal-card-icon {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 /* Dark mode adjustments for glass cards */
 body.dark-mode .portal-card {
     background: rgba(17, 25, 40, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-body.dark-mode .portal-card:hover {
-    background: rgba(17, 25, 40, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 body.dark-mode .portal-card-icon {
@@ -1494,7 +1692,52 @@ body.dark-mode .portal-card-desc {
     color: var(--gray-x-11);
 }
 
-/* Responsive Grid Layouts */
+body.dark-mode .portal-card-btn {
+    background: rgba(0, 191, 255, 0.12);
+    border-color: rgba(0, 191, 255, 0.4);
+    color: #00BFFF;
+}
+
+body.dark-mode .portal-card-btn:hover {
+    background: #00BFFF;
+    border-color: #00BFFF;
+    color: #ffffff;
+}
+.beta-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #f59e0b;
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    z-index: 2;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Dark mode beta badge */
+body.dark-mode .beta-badge {
+    background: #d97706;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.2);
+}
+
+/* Adjust card padding to accommodate badge */
+.portal-card {
+    position: relative;
+    overflow: visible;
+}
+
+/* Make sure badge doesn't get cut off on hover */
+.portal-card:hover .beta-badge {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+}
+/* Responsive Grid Layouts - Keeping square cards */
 @media (min-width: 768px) {
     .portal-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -1508,34 +1751,71 @@ body.dark-mode .portal-card-desc {
     }
 }
 
-@media (min-width: 1200px) {
-    .portal-grid {
-        grid-template-columns: repeat(5, 1fr);
+/* Tablet adjustments - maintain square shape */
+@media (min-width: 768px) and (max-width: 991px) {
+    .portal-card {
+        aspect-ratio: 1 / 1;
     }
 }
 
-/* Mobile adjustments */
+/* Mobile adjustments - square cards on mobile too */
 @media (max-width: 767px) {
     .portal-cards-section {
         padding: 60px 0;
     }
     
     .portal-card {
-        padding: 30px 20px;
+        padding: 25px 20px;
+        aspect-ratio: 1 / 1;
     }
     
     .portal-card-icon {
-        width: 70px;
-        height: 70px;
+        width: 65px;
+        height: 65px;
         font-size: 2.2rem;
+        margin-bottom: 15px;
     }
     
     .portal-card-title {
-        font-size: 1.6rem;
+        font-size: 1.5rem;
     }
     
     .portal-card-desc {
-        font-size: 1.3rem;
+        font-size: 1.25rem;
+        margin-bottom: 20px;
+    }
+    
+    .portal-card-btn {
+        padding: 10px 22px;
+        font-size: 1.25rem;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .portal-card {
+        padding: 20px 16px;
+    }
+    
+    .portal-card-icon {
+        width: 55px;
+        height: 55px;
+        font-size: 1.8rem;
+        border-radius: 16px;
+    }
+    
+    .portal-card-title {
+        font-size: 1.35rem;
+    }
+    
+    .portal-card-desc {
+        font-size: 1.15rem;
+        margin-bottom: 18px;
+    }
+    
+    .portal-card-btn {
+        padding: 8px 18px;
+        font-size: 1.15rem;
     }
 }
 
@@ -2527,8 +2807,6 @@ body.dark-mode .portal-card-desc {
             .container { max-width: 720px; }
             .btn { padding: 15px 30px; }
             :is(.course, .blog) .grid-list { grid-template-columns: 1fr 1fr; }
-            .hero { padding-block-start: calc(var(--section-padding) + 90px); }
-            .hero .container { gap: 50px; }
             .hero-banner { position: relative; z-index: 1; }
             .hero-banner .img-holder.one { justify-self: flex-end; }
             .hero-banner .img-holder.two { margin-block-start: 100px; }
@@ -2569,8 +2847,6 @@ body.dark-mode .portal-card-desc {
             .container { max-width: 1185px; }
             .shape { display: block; }
             .about-content, .blog { position: relative; }
-            .hero { padding-block-start: calc(var(--section-padding) + 120px); }
-            .hero .container { gap: 80px; }
             .hero-shape-2 { top: -80px; z-index: -1; }
             .about .container { gap: 110px; }
             .about-banner .img-holder { margin-inline: 0; }
@@ -2617,11 +2893,6 @@ body.dark-mode .portal-card-desc {
         }
         .hero-buttons .btn {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.hero-buttons .btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
 
 .btn-primary-custom:hover,
@@ -2754,7 +3025,7 @@ body.dark-mode .portal-card-desc {
             </p>
             
             <!-- Button Group -->
-            <div class="hero-button-group" style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-top: 2rem;">
+            <div class="hero-button-group">
                 <a href="register.php" class="btn-primary-custom" style="background: var(--kappel); color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
                     <span>Start Free Trial</span>
                     <ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon>
@@ -2783,10 +3054,10 @@ body.dark-mode .portal-card-desc {
                     <div class="hero-stat-number" id="heroTeachersCount">0</div>
                     <div class="hero-stat-label">Teachers</div>
                 </div>
-                <div class="hero-stat-item">
-                    <div class="hero-stat-number" id="heroReportsCount">0</div>
-                    <div class="hero-stat-label">Reports Generated</div>
-                </div>
+    <div class="hero-stat-item">
+        <div class="hero-stat-number" id="heroResourcesCount">200</div>
+        <div class="hero-stat-label">Resources</div>
+    </div>
             </div>
         </div>
         
@@ -2814,7 +3085,7 @@ body.dark-mode .portal-card-desc {
                 </div>
                 <h3 class="portal-card-title">Analytics Portal</h3>
                 <p class="portal-card-desc">Real-time exam analysis, performance tracking, and detailed reports for informed decision-making.</p>
-                <a href="analytics.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+                <a href="analytics.php" class="portal-card-btn">Get Started <i class="fas fa-arrow-right"></i></a>
             </div>
             
             <!-- Fee Portal Card -->
@@ -2824,7 +3095,7 @@ body.dark-mode .portal-card-desc {
                 </div>
                 <h3 class="portal-card-title">Fee Portal</h3>
                 <p class="portal-card-desc">Automated fee management, M-Pesa integration, payment tracking, and instant receipts.</p>
-                <a href="feesystem.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+                <a href="feesystem.php" class="portal-card-btn">Get Started <i class="fas fa-arrow-right"></i></a>
             </div>
             
             <!-- Bulk SMS Portal Card -->
@@ -2834,17 +3105,29 @@ body.dark-mode .portal-card-desc {
                 </div>
                 <h3 class="portal-card-title">Bulk SMS Portal</h3>
                 <p class="portal-card-desc">Send instant alerts, reminders, and announcements to parents and staff effortlessly.</p>
-                <a href="bulksms.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+                <a href="bulksms.php" class="portal-card-btn">Get Started <i class="fas fa-arrow-right"></i></a>
             </div>
             
-            <!-- Mwalimu Hub Card -->
+            <!-- Timetable Generator Card with BETA Badge -->
+            <div class="portal-card" data-type="timetable">
+                <div class="beta-badge">BETA</div>
+                <div class="portal-card-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <h3 class="portal-card-title">Timetable Generator</h3>
+                <p class="portal-card-desc">AI-powered timetable scheduling with conflict resolution, teacher allocation, and room optimization.</p>
+                <a href="timetable-generator.php" class="portal-card-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+            </div>
+            
+            <!-- Mwalimu Hub Card with BETA Badge -->
             <div class="portal-card" data-type="mwalimu">
+                <div class="beta-badge">BETA</div>
                 <div class="portal-card-icon">
                     <i class="fas fa-robot"></i>
                 </div>
                 <h3 class="portal-card-title">Mwalimu Hub</h3>
                 <p class="portal-card-desc">AI-powered teaching assistant for CBC curriculum, lesson plans, and assessments.</p>
-                <a href="mwalimu-hub.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+                <a href="mwalimu-hub.php" class="portal-card-btn">Get Started <i class="fas fa-arrow-right"></i></a>
             </div>
             
             <!-- Parents Portal Card -->
@@ -2854,7 +3137,7 @@ body.dark-mode .portal-card-desc {
                 </div>
                 <h3 class="portal-card-title">Parents Portal</h3>
                 <p class="portal-card-desc">Real-time access to children's academic progress, fee balances, and attendance.</p>
-                <a href="parents-portal.php" class="portal-card-btn">Explore <i class="fas fa-arrow-right"></i></a>
+                <a href="parents-portal.php" class="portal-card-btn">Get Started <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     </div>
@@ -2952,7 +3235,7 @@ body.dark-mode .portal-card-desc {
         const header = document.querySelector("[data-header]");
         const backTopBtn = document.querySelector("[data-back-top-btn]");
         const activeElem = function () {
-            if (window.scrollY > 100) {
+            if (window.scrollY > 50) {
                 header.classList.add("active");
                 backTopBtn.classList.add("active");
             } else {
