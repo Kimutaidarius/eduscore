@@ -1,74 +1,56 @@
 <?php
 // No whitespace before this line - ensure file starts with <?php
+
+// Set HTTP status code explicitly
+http_response_code(200);
+
+// Security and performance headers
 header('Content-Type: application/xml; charset=utf-8');
+header('Cache-Control: public, max-age=3600, must-revalidate');
+header('X-Content-Type-Options: nosniff');
+header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
 
 // Error handling - prevents HTML error messages from breaking XML
 ini_set('display_errors', 0);
 error_reporting(0);
 
-echo '<?xml version="1.0" encoding="UTF-8"?>';
+// XML declaration with proper formatting
+echo '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
 
 $base_url = "https://eduscore.co.ke";
-$lastmod = date('Y-m-d');
+$lastmod = gmdate('Y-m-d'); // Use GMT to prevent timezone inconsistencies
 
-// Important pages to index
+// ============================================
+// ONLY PUBLIC MARKETING/LANDING PAGES
+// ============================================
 $pages = [
-    // ============================================
     // CORE PAGES
-    // ============================================
     '/' => ['priority' => '1.0', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
-    '/index.php' => ['priority' => '0.9', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
     
-    // ============================================
-    // ANALYTICS & EXAM ANALYSIS - SEO LANDING PAGES (HIGH PRIORITY)
-    // ============================================
-    '/analytics' => ['priority' => '0.9', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
-    '/exam-analysis' => ['priority' => '0.85', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
-    '/exam-analytics' => ['priority' => '0.80', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
-    '/student-performance' => ['priority' => '0.85', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
-    '/report-cards' => ['priority' => '0.85', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
-    '/analytics-dashboard' => ['priority' => '0.6', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    
-    // ============================================
-    // BLOG - CLEAN URLs
-    // ============================================
+    // BLOG
     '/blog' => ['priority' => '0.85', 'changefreq' => 'weekly', 'lastmod' => $lastmod],
     
-    // ============================================
-    // FEE SYSTEM - CLEAN SEO URLs (MASKED .php)
-    // ============================================
-    '/feesystem' => ['priority' => '0.85', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    '/fee-system' => ['priority' => '0.80', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    '/fee-management' => ['priority' => '0.80', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
+    // PRODUCT LANDING PAGES (ONLY if they contain NO login/dashboard/payment forms)
+    '/exam-generator' => ['priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
+    '/mwalimu-ai' => ['priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
     
-    // ============================================
-    // PARENTS PORTAL - CLEAN SEO URLs (MASKED .php)
-    // ============================================
-    '/parents-portal' => ['priority' => '0.85', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    '/parents' => ['priority' => '0.80', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    '/parent-portal' => ['priority' => '0.80', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    
-    // ============================================
-    // BULK SMS - CLEAN URLs
-    // ============================================
-    '/bulksms' => ['priority' => '0.80', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    '/bulk-sms' => ['priority' => '0.75', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    
-    // ============================================
-    // OTHER PRODUCTS
-    // ============================================
-    '/exam-generator/' => ['priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
-    '/mwalimu-ai/' => ['priority' => '0.8', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
+    // FEATURE PAGES (marketing only)
+    '/features' => ['priority' => '0.7', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
+    '/pricing' => ['priority' => '0.7', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
+    '/contact' => ['priority' => '0.6', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
+    '/about' => ['priority' => '0.6', 'changefreq' => 'monthly', 'lastmod' => $lastmod],
 ];
 
-// Get blog posts dynamically using PDO
+// Get blog posts dynamically
 $config_path = __DIR__ . '/includes/config.php';
 if (file_exists($config_path)) {
     try {
         require_once $config_path;
         
-        // Use the existing PDO connection from config.php
+        // Set UTF-8 charset for database connection
         if (isset($db) && $db instanceof PDO) {
+            $db->exec("SET NAMES utf8mb4");
+            
             // Try blogs table first
             try {
                 $blog_query = "SELECT slug, updated_at FROM blogs WHERE status = 'published' ORDER BY updated_at DESC LIMIT 50";
@@ -89,22 +71,36 @@ if (file_exists($config_path)) {
             
             if (!empty($blog_results)) {
                 foreach ($blog_results as $row) {
+                    // Professional slug sanitization
                     $slug = $row['slug'] ?? '';
-                    if (!empty($slug)) {
-                        $pages['/blog/' . $slug] = [
-                            'priority' => '0.7', 
-                            'changefreq' => 'weekly', 
-                            'lastmod' => date('Y-m-d', strtotime($row['updated_at'] ?? 'now'))
-                        ];
+                    $slug = strtolower(trim($slug));
+                    $slug = preg_replace('/[^a-z0-9\-]+/', '-', $slug);
+                    $slug = preg_replace('/-+/', '-', $slug); // Prevent multiple dashes
+                    $slug = trim($slug, '-');
+                    
+                    // Only add if slug is valid and not too long
+                    if (!empty($slug) && strlen($slug) < 200) {
+                        // Proper date validation with fallback
+                        $timestamp = !empty($row['updated_at']) ? strtotime($row['updated_at']) : false;
+                        $updated = $timestamp ? gmdate('Y-m-d', $timestamp) : $lastmod;
+                        
+                        // Prevent duplicate URLs
+                        $blog_url = '/blog/' . $slug;
+                        if (!isset($pages[$blog_url])) {
+                            $pages[$blog_url] = [
+                                'priority' => '0.7', 
+                                'changefreq' => 'weekly', 
+                                'lastmod' => $updated
+                            ];
+                        }
                     }
                 }
             }
-            $blog_stmt = null; // Close the statement
+            $blog_stmt = null;
         } else {
             error_log("Sitemap: PDO connection not available");
         }
     } catch (PDOException $e) {
-        // Log error but continue - sitemap still works without dynamic pages
         error_log("Sitemap blog query failed (PDO): " . $e->getMessage());
     } catch (Exception $e) {
         error_log("Sitemap blog query failed: " . $e->getMessage());
@@ -112,6 +108,15 @@ if (file_exists($config_path)) {
 } else {
     error_log("Sitemap: Config file not found at: " . $config_path);
 }
+
+// Sitemap protocol limit is 50,000 URLs - protect against exceeding
+if (count($pages) > 50000) {
+    $pages = array_slice($pages, 0, 50000, true);
+}
+
+// Optional ETag for better crawl efficiency
+$etag = md5(json_encode($pages));
+header("ETag: \"$etag\"");
 ?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -128,3 +133,7 @@ if (file_exists($config_path)) {
     <?php endforeach; ?>
     
 </urlset>
+<?php
+// Clean exit
+exit;
+?>

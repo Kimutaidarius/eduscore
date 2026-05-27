@@ -1,16 +1,18 @@
 <?php
-// Enable error reporting for debugging (disable in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
 session_start();
 
+// Include config
 require_once 'includes/config.php';
 
+// Define base URL and canonical URL
 $base_url = "https://eduscore.co.ke";
 $current_url = $base_url . $_SERVER['REQUEST_URI'];
 $canonical_url = $base_url . "/career-pathways";
 
+// Enhanced SEO metadata
 $page_title = "Career Pathways | EduScore - Discover Your Future Career Path";
 $page_description = "Explore careers, choose the right subjects, and align your future with Kenya's CBC pathways. AI-powered career guidance for Kenyan students.";
 $page_keywords = "career pathways, career guidance Kenya, CBC curriculum, subject selection, career quiz, Kenyan schools";
@@ -30,7 +32,6 @@ $cbc_pathways = [
         'full_name' => 'Science, Technology, Engineering, and Mathematics',
         'icon' => 'fas fa-microscope',
         'color' => '#00BFFF',
-        'bg_gradient' => 'linear-gradient(135deg, #00BFFF 0%, #0099cc 100%)',
         'description' => 'Focusing on scientific inquiry, innovation, and problem-solving. Ideal for analytically minded students aiming for technical careers.',
         'tracks' => [
             'Pure Sciences' => 'Emphasizes theoretical foundations in physics, chemistry, and biology.',
@@ -38,306 +39,58 @@ $cbc_pathways = [
             'Technical and Engineering' => 'Hands-on engineering and tech skills including robotics and programming.',
             'Careers and Technology Studies' => 'Vocational-oriented tech integration for practical careers.'
         ],
-        'core_subjects' => ['English/Kiswahili (Language)', 'Mathematics (Advanced)', 'Community Service Learning', 'Physical Education/Health Education'],
+        'core_subjects' => ['English/Kiswahili', 'Mathematics', 'Community Service Learning', 'Physical Education'],
         'elective_subjects' => [
             'Physics' => 'Mechanics, energy, waves',
             'Chemistry' => 'Matter, reactions, lab work',
             'Biology' => 'Life sciences, ecology',
             'Computer Science' => 'Programming, AI, cybersecurity',
             'Aviation Technology' => 'Aerodynamics, flight systems',
-            'Agriculture' => 'Sustainable farming, biotech',
-            'Building Construction' => 'Practical engineering',
-            'Electricity/Power Mechanics' => 'Technical skills',
-            'Integrated Science' => 'Broad intro to sciences'
+            'Agriculture' => 'Sustainable farming, biotech'
         ],
-        'learning_outcomes' => ['Critical Thinking', 'Innovation', 'Ethical use of technology', 'Problem Solving'],
-        'career_links' => ['Doctors', 'Engineers', 'Data Scientists', 'Pilots', 'Architects', 'IT Specialists', 'Researchers'],
-        'university_pathways' => ['Engineering', 'Medicine', 'Computer Science', 'Aviation', 'Architecture']
+        'career_links' => ['Doctors', 'Engineers', 'Data Scientists', 'Pilots', 'Architects', 'IT Specialists']
     ],
     'social_sciences' => [
         'name' => 'Social Sciences Pathway',
         'full_name' => 'Humanities, Business, and Social Studies',
         'icon' => 'fas fa-globe-africa',
         'color' => '#8B5CF6',
-        'bg_gradient' => 'linear-gradient(135deg, #8B5CF6 0%, #6d28d9 100%)',
         'description' => 'Nurtures critical thinkers, communicators, and societal leaders, emphasizing human behavior, culture, and economics.',
         'tracks' => [
             'Languages and Literature' => 'Focuses on communication and cultural studies.',
             'Humanities' => 'History, geography, and social studies.',
             'Business Studies' => 'Entrepreneurship and economics.'
         ],
-        'core_subjects' => ['English/Kiswahili (Emphasized)', 'Mathematics (Basic)', 'Community Service Learning', 'Physical Education'],
+        'core_subjects' => ['English/Kiswahili', 'Mathematics', 'Community Service Learning', 'Physical Education'],
         'elective_subjects' => [
             'History and Citizenship' => 'Global/Kenyan history, governance',
             'Geography' => 'Physical/human environments, GIS',
-            'Religious Education' => 'IRE/CRE/HRE, ethics, philosophy',
-            'Literature in English/Kiswahili' => 'Creative writing, analysis',
+            'Religious Education' => 'IRE/CRE/HRE, ethics',
+            'Literature' => 'Creative writing, analysis',
             'Business Studies' => 'Entrepreneurship, finance',
-            'Legal Studies' => 'Law, human rights',
             'Foreign Languages' => 'French, German for global communication'
         ],
-        'learning_outcomes' => ['Empathy', 'Ethical Decision Making', 'Global Awareness', 'Communication'],
-        'career_links' => ['Lawyers', 'Journalists', 'Economists', 'Teachers', 'Psychologists', 'Entrepreneurs', 'Diplomats'],
-        'university_pathways' => ['Law', 'Business Administration', 'Journalism', 'Social Work', 'Economics']
+        'career_links' => ['Lawyers', 'Journalists', 'Economists', 'Teachers', 'Psychologists', 'Entrepreneurs']
     ],
     'arts_sports' => [
         'name' => 'Arts and Sports Science Pathway',
         'full_name' => 'Creative Arts, Design, and Sports Science',
         'icon' => 'fas fa-palette',
         'color' => '#10B981',
-        'bg_gradient' => 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
         'description' => 'Develops talents in performance, design, and athletics, integrating science for professional viability.',
         'tracks' => [
             'Sports' => 'Physical training and sports management.',
             'Visual Arts' => 'Design, sculpture, digital media.',
             'Performing Arts' => 'Music, dance, theater.'
         ],
-        'core_subjects' => ['English/Kiswahili', 'Mathematics (Basic)', 'Community Service Learning', 'Physical Education (Expanded)'],
+        'core_subjects' => ['English/Kiswahili', 'Mathematics', 'Community Service Learning', 'Physical Education'],
         'elective_subjects' => [
             'Physical Education and Sports' => 'Training, coaching, nutrition',
             'Visual Arts' => 'Drawing, painting, graphic design',
             'Performing Arts' => 'Music, dance, theater composition',
-            'Home Science' => 'Textiles, nutrition (arts integration)',
-            'Film and Media Studies' => 'Production, editing',
-            'Leatherwork/Woodwork' => 'Craft-based arts'
+            'Film and Media Studies' => 'Production, editing'
         ],
-        'learning_outcomes' => ['Creativity', 'Teamwork', 'Physical Resilience', 'Mental Resilience'],
-        'career_links' => ['Athletes', 'Musicians', 'Filmmakers', 'Designers', 'Coaches', 'Event Managers'],
-        'university_pathways' => ['Fine Arts', 'Sports Science', 'Media Studies', 'Music', 'Theater']
-    ]
-];
-
-// Career data structure with pathway mapping
-$careers = [
-    'doctor' => [
-        'title' => 'Doctor',
-        'pathway' => 'stem',
-        'pathway_name' => 'STEM',
-        'subjects' => ['Biology', 'Chemistry', 'Physics/Mathematics'],
-        'courses' => ['Bachelor of Medicine and Bachelor of Surgery (MBChB)'],
-        'institutions' => ['University of Nairobi', 'Kenyatta University', 'Moi University', 'Egerton University'],
-        'skills' => ['Critical Thinking', 'Empathy', 'Problem Solving', 'Attention to Detail'],
-        'description' => 'Medical doctors diagnose and treat illnesses, injuries, and other health conditions.',
-        'outlook' => 'High demand, especially in specialized fields',
-        'related_careers' => ['Surgeon', 'Pediatrician', 'Psychiatrist', 'Dentist']
-    ],
-    'software_engineer' => [
-        'title' => 'Software Engineer',
-        'pathway' => 'stem',
-        'pathway_name' => 'STEM',
-        'subjects' => ['Mathematics', 'Physics', 'Computer Studies'],
-        'courses' => ['BSc Computer Science', 'BSc Software Engineering', 'BSc Information Technology'],
-        'institutions' => ['University of Nairobi', 'Strathmore University', 'JKUAT', 'KCA University'],
-        'skills' => ['Programming', 'Problem Solving', 'Logical Thinking', 'Creativity'],
-        'description' => 'Software engineers design, develop, and maintain software applications and systems.',
-        'outlook' => 'Very high demand, rapidly growing field',
-        'related_careers' => ['Data Scientist', 'DevOps Engineer', 'Mobile Developer', 'Cloud Architect']
-    ],
-    'civil_engineer' => [
-        'title' => 'Civil Engineer',
-        'pathway' => 'stem',
-        'pathway_name' => 'STEM',
-        'subjects' => ['Mathematics', 'Physics', 'Geography'],
-        'courses' => ['Bachelor of Civil Engineering'],
-        'institutions' => ['University of Nairobi', 'JKUAT', 'Technical University of Kenya'],
-        'skills' => ['Design', 'Project Management', 'Mathematics', 'Problem Solving'],
-        'description' => 'Civil engineers design, construct, and maintain infrastructure projects like roads, bridges, and buildings.',
-        'outlook' => 'Steady demand, infrastructure development in Kenya',
-        'related_careers' => ['Structural Engineer', 'Construction Manager', 'Urban Planner']
-    ],
-    'pilot' => [
-        'title' => 'Pilot',
-        'pathway' => 'stem',
-        'pathway_name' => 'STEM',
-        'subjects' => ['Mathematics', 'Physics', 'Geography'],
-        'courses' => ['Bachelor of Science in Aviation', 'Diploma in Flight Training'],
-        'institutions' => ['East African School of Aviation', 'Kenya Airways Flight Training'],
-        'skills' => ['Decision Making', 'Leadership', 'Communication', 'Situational Awareness'],
-        'description' => 'Pilots operate aircraft, ensuring safe and efficient transportation of passengers and cargo.',
-        'outlook' => 'Moderate demand, requires extensive training',
-        'related_careers' => ['Air Traffic Controller', 'Flight Instructor', 'Aerospace Engineer']
-    ],
-    'lawyer' => [
-        'title' => 'Lawyer',
-        'pathway' => 'social_sciences',
-        'pathway_name' => 'Social Sciences',
-        'subjects' => ['English', 'History', 'CRE/IRE', 'Business Studies'],
-        'courses' => ['Bachelor of Laws (LLB)'],
-        'institutions' => ['University of Nairobi', 'Moi University', 'Catholic University', 'Strathmore University'],
-        'skills' => ['Argumentation', 'Research', 'Communication', 'Analytical Thinking'],
-        'description' => 'Lawyers advise and represent clients in legal matters, including courts and negotiations.',
-        'outlook' => 'Steady demand, competitive field',
-        'related_careers' => ['Judge', 'Legal Consultant', 'Corporate Counsel', 'Prosecutor']
-    ],
-    'economist' => [
-        'title' => 'Economist',
-        'pathway' => 'social_sciences',
-        'pathway_name' => 'Social Sciences',
-        'subjects' => ['Mathematics', 'Economics', 'Business Studies', 'Geography'],
-        'courses' => ['Bachelor of Economics', 'Bachelor of Business Administration'],
-        'institutions' => ['University of Nairobi', 'Kenyatta University', 'Strathmore University'],
-        'skills' => ['Analytical Thinking', 'Research', 'Data Analysis', 'Critical Thinking'],
-        'description' => 'Economists study production and distribution of resources, goods, and services.',
-        'outlook' => 'Growing demand in banking and government sectors',
-        'related_careers' => ['Financial Analyst', 'Policy Advisor', 'Banker', 'Consultant']
-    ],
-    'architect' => [
-        'title' => 'Architect',
-        'pathway' => 'stem',
-        'pathway_name' => 'STEM',
-        'subjects' => ['Mathematics', 'Physics', 'Art and Design'],
-        'courses' => ['Bachelor of Architecture'],
-        'institutions' => ['University of Nairobi', 'Jomo Kenyatta University', 'Technical University of Kenya'],
-        'skills' => ['Creativity', 'Technical Drawing', 'Spatial Awareness', 'Project Management'],
-        'description' => 'Architects design buildings and structures, combining art and engineering.',
-        'outlook' => 'Moderate demand, tied to construction industry',
-        'related_careers' => ['Interior Designer', 'Urban Planner', 'Landscape Architect', 'Construction Manager']
-    ],
-    'teacher' => [
-        'title' => 'Teacher',
-        'pathway' => 'social_sciences',
-        'pathway_name' => 'Social Sciences',
-        'subjects' => ['English', 'Mathematics', 'Subject specialization', 'Kiswahili'],
-        'courses' => ['Bachelor of Education', 'Diploma in Education'],
-        'institutions' => ['Kenyatta University', 'Mount Kenya University', 'Maseno University', 'Laikipia University'],
-        'skills' => ['Communication', 'Patience', 'Leadership', 'Organization'],
-        'description' => 'Teachers educate and inspire students across various subjects and grade levels.',
-        'outlook' => 'High demand, especially for STEM and special education',
-        'related_careers' => ['School Administrator', 'Education Consultant', 'Curriculum Developer', 'Trainer']
-    ],
-    'data_analyst' => [
-        'title' => 'Data Analyst',
-        'pathway' => 'stem',
-        'pathway_name' => 'STEM',
-        'subjects' => ['Mathematics', 'Statistics', 'Computer Studies'],
-        'courses' => ['BSc Statistics', 'BSc Data Science', 'BSc Computer Science'],
-        'institutions' => ['University of Nairobi', 'Strathmore University', 'JKUAT', 'Zetech University'],
-        'skills' => ['Analytical Thinking', 'SQL', 'Data Visualization', 'Statistical Analysis'],
-        'description' => 'Data analysts collect, process, and perform statistical analyses on data.',
-        'outlook' => 'Very high demand across all industries',
-        'related_careers' => ['Data Scientist', 'Business Analyst', 'Data Engineer', 'BI Developer']
-    ],
-    'journalist' => [
-        'title' => 'Journalist',
-        'pathway' => 'arts_sports',
-        'pathway_name' => 'Arts & Sports',
-        'subjects' => ['English', 'Kiswahili', 'History', 'CRE/IRE'],
-        'courses' => ['Bachelor of Journalism', 'Bachelor of Mass Communication'],
-        'institutions' => ['University of Nairobi', 'Daystar University', 'USIU', 'Multimedia University'],
-        'skills' => ['Writing', 'Research', 'Communication', 'Interviewing'],
-        'description' => 'Journalists investigate and report news and current events.',
-        'outlook' => 'Competitive, digital media growing',
-        'related_careers' => ['News Anchor', 'Editor', 'Content Creator', 'Public Relations Specialist']
-    ],
-    'graphic_designer' => [
-        'title' => 'Graphic Designer',
-        'pathway' => 'arts_sports',
-        'pathway_name' => 'Arts & Sports',
-        'subjects' => ['Art and Design', 'Computer Studies', 'Mathematics'],
-        'courses' => ['Bachelor of Fine Arts', 'Diploma in Graphic Design'],
-        'institutions' => ['University of Nairobi', 'Kenya Institute of Design', 'Technical University of Kenya'],
-        'skills' => ['Creativity', 'Typography', 'Color Theory', 'Software Proficiency'],
-        'description' => 'Graphic designers create visual concepts to communicate ideas.',
-        'outlook' => 'Growing demand in digital media',
-        'related_careers' => ['UI/UX Designer', 'Art Director', 'Web Designer', 'Illustrator']
-    ]
-];
-
-// Subject combinations mapping
-$subject_combinations = [
-    'Physics+Chemistry+Mathematics' => [
-        'careers' => ['Engineer', 'Doctor', 'Software Engineer', 'Data Scientist', 'Architect', 'Pilot'],
-        'pathways' => ['STEM'],
-        'description' => 'Strong foundation for engineering, medicine, and technology careers'
-    ],
-    'Biology+Chemistry+Mathematics' => [
-        'careers' => ['Doctor', 'Pharmacist', 'Dentist', 'Veterinarian', 'Biomedical Engineer'],
-        'pathways' => ['STEM'],
-        'description' => 'Ideal for medical and health science careers'
-    ],
-    'Business+Geography+CRE' => [
-        'careers' => ['Lawyer', 'Entrepreneur', 'Economist', 'Public Administrator', 'Banker'],
-        'pathways' => ['Social Sciences'],
-        'description' => 'Great for law, business, and public service careers'
-    ],
-    'Agriculture+Biology+Chemistry' => [
-        'careers' => ['Veterinarian', 'Agricultural Engineer', 'Food Scientist', 'Environmental Scientist'],
-        'pathways' => ['STEM'],
-        'description' => 'Perfect for agriculture and environmental science careers'
-    ],
-    'History+CRE+English' => [
-        'careers' => ['Lawyer', 'Teacher', 'Journalist', 'Diplomat', 'Public Administrator'],
-        'pathways' => ['Social Sciences', 'Arts & Sports Science'],
-        'description' => 'Excellent for humanities and social science careers'
-    ],
-    'Art+Design+Computer Studies' => [
-        'careers' => ['Graphic Designer', 'UX Designer', 'Animator', 'Game Designer', 'Multimedia Artist'],
-        'pathways' => ['Arts & Sports Science'],
-        'description' => 'Perfect for creative and digital arts careers'
-    ]
-];
-
-// Quiz questions for career assessment
-$quiz_questions = [
-    [
-        'id' => 1,
-        'question' => 'What subjects do you enjoy most?',
-        'options' => [
-            'Mathematics & Sciences' => 'STEM',
-            'Languages & Humanities' => 'Social Sciences',
-            'Arts & Design' => 'Arts & Sports Science',
-            'Business & Commerce' => 'Social Sciences'
-        ]
-    ],
-    [
-        'id' => 2,
-        'question' => 'Do you enjoy problem solving?',
-        'options' => [
-            'Yes, I love challenges' => 'STEM',
-            'Sometimes' => 'STEM',
-            'Not really' => 'Social Sciences',
-            'I prefer creative tasks' => 'Arts & Sports Science'
-        ]
-    ],
-    [
-        'id' => 3,
-        'question' => 'Do you like creativity and design?',
-        'options' => [
-            'Yes, I am very creative' => 'Arts & Sports Science',
-            'Somewhat' => 'Arts & Sports Science',
-            'Not my strength' => 'STEM',
-            'I prefer structure' => 'STEM'
-        ]
-    ],
-    [
-        'id' => 4,
-        'question' => 'Do you enjoy helping people?',
-        'options' => [
-            'Yes, very much' => 'Social Sciences',
-            'Sometimes' => 'Social Sciences',
-            'Not really' => 'STEM',
-            'I prefer working independently' => 'STEM'
-        ]
-    ],
-    [
-        'id' => 5,
-        'question' => 'Do you enjoy technology?',
-        'options' => [
-            'Yes, I love tech' => 'STEM',
-            'I use it but not passionate' => 'STEM',
-            'Not really' => 'Arts & Sports Science',
-            'I prefer hands-on work' => 'Arts & Sports Science'
-        ]
-    ],
-    [
-        'id' => 6,
-        'question' => 'Do you prefer practical or theoretical work?',
-        'options' => [
-            'Practical, hands-on work' => 'STEM',
-            'Theoretical, research-based' => 'STEM',
-            'A mix of both' => 'Social Sciences',
-            'Creative expression' => 'Arts & Sports Science'
-        ]
+        'career_links' => ['Athletes', 'Musicians', 'Filmmakers', 'Designers', 'Coaches', 'Event Managers']
     ]
 ];
 ?>
@@ -359,846 +112,1019 @@ $quiz_questions = [
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700;800&family=Poppins:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=League+Spartan:wght@400;500;600;700;800&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /*-----------------------------------*\
-          #CUSTOM PROPERTY
-        \*-----------------------------------*/
-        :root {
-            --kappel: hsl(170, 75%, 41%);
-            --kappel_15: hsla(170, 75%, 41%, 0.15);
-            --selective-yellow: hsl(42, 94%, 55%);
-            --eerie-black-1: hsl(0, 0%, 9%);
-            --eerie-black-2: hsl(180, 3%, 7%);
-            --quick-silver: hsl(0, 0%, 65%);
-            --radical-red: hsl(351, 83%, 61%);
-            --light-gray: hsl(0, 0%, 80%);
-            --isabelline: hsl(36, 33%, 94%);
-            --gray-x-11: hsl(0, 0%, 73%);
-            --platinum: hsl(0, 0%, 90%);
-            --gray-web: hsl(0, 0%, 50%);
-            --white: hsl(0, 0%, 100%);
-            
-            --ff-league_spartan: 'League Spartan', sans-serif;
-            --ff-poppins: 'Poppins', sans-serif;
-            
-            --fs-1: 4.2rem;
-            --fs-2: 3.2rem;
-            --fs-3: 2.3rem;
-            --fs-4: 1.8rem;
-            --fs-5: 1.5rem;
-            --fs-6: 1.4rem;
-            --fs-7: 1.3rem;
-            
-            --fw-500: 500;
-            --fw-600: 600;
-            
-            --section-padding: 75px;
-            
-            --shadow-1: 0 6px 15px 0 hsla(0, 0%, 0%, 0.05);
-            --shadow-2: 0 10px 30px hsla(0, 0%, 0%, 0.06);
-            --shadow-3: 0 10px 50px 0 hsla(220, 53%, 22%, 0.1);
-            
-            --radius-pill: 500px;
-            --radius-circle: 50%;
-            --radius-3: 3px;
-            --radius-5: 5px;
-            --radius-10: 10px;
-            --radius-15: 15px;
-            
-            --transition-1: 0.25s ease;
-            --transition-2: 0.5s ease;
-            --cubic-in: cubic-bezier(0.51, 0.03, 0.64, 0.28);
-            --cubic-out: cubic-bezier(0.33, 0.85, 0.4, 0.96);
-        }
-        
-        /* Dark Mode Overrides */
-        body.dark-mode {
-            --eerie-black-1: hsl(0, 0%, 90%);
-            --eerie-black-2: hsl(0, 0%, 95%);
-            --gray-web: hsl(0, 0%, 70%);
-            --light-gray: hsl(0, 0%, 30%);
-            --isabelline: hsl(36, 20%, 15%);
-            --platinum: hsl(0, 0%, 25%);
-            --white: hsl(0, 0%, 15%);
-        }
-        
-        body.dark-mode .footer {
-            background-color: #0a0e17;
-        }
-        
-        body.dark-mode .header {
-            background-color: var(--white);
-        }
-        
-        body.dark-mode .navbar-link {
-            color: var(--eerie-black-1);
-        }
-        
-        /*-----------------------------------*\
-          #RESET
-        \*-----------------------------------*/
-        *,
-        *::before,
-        *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        li { list-style: none; }
-        
-        a,
-        img,
-        span,
-        data,
-        input,
-        button,
-        textarea,
-        ion-icon { display: block; }
-        
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-        
-        img { height: auto; }
-        
-        input,
-        button,
-        textarea {
-            background: none;
-            border: none;
-            font: inherit;
-        }
-        
-        input,
-        textarea { width: 100%; }
-        
-        button { cursor: pointer; }
-        
-        ion-icon { pointer-events: none; }
-        
-        address { font-style: normal; }
-        
-        html {
-            font-family: var(--ff-poppins);
-            font-size: 10px;
-            scroll-behavior: smooth;
-        }
-        
-        body {
-            background-color: var(--white);
-            color: var(--gray-web);
-            font-size: 1.6rem;
-            line-height: 1.75;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background-color: hsl(0, 0%, 98%); }
-        ::-webkit-scrollbar-thumb { background-color: hsl(0, 0%, 80%); }
-        
-        /*-----------------------------------*\
-          #REUSED STYLE
-        \*-----------------------------------*/
-        .container { 
-            max-width: 1400px;
-            margin: 0 auto;
-            padding-inline: 15px;
-        }
-        
-        .section { 
-            padding-block: var(--section-padding); 
-        }
-        
-        .shape {
-            position: absolute;
-            display: none;
-        }
-        
-        .h1,
-        .h2,
-        .h3 {
-            color: var(--eerie-black-1);
-            font-family: var(--ff-league_spartan);
-            line-height: 1;
-        }
-        
-        .h1,
-        .h2 { font-weight: var(--fw-600); }
-        .h1 { font-size: var(--fs-1); }
-        .h2 { font-size: var(--fs-2); }
-        
-        .section-title {
-            --color: var(--radical-red);
-            text-align: center;
-        }
-        
-        .section-title .span {
-            display: inline-block;
-            color: var(--color);
-        }
-        
-        .btn {
-            background-color: var(--kappel);
-            color: var(--white);
-            font-family: var(--ff-league_spartan);
-            font-size: var(--fs-4);
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            max-width: max-content;
-            padding: 10px 20px;
-            border-radius: var(--radius-5);
-            overflow: hidden;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .btn::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: var(--gradient);
-            z-index: -1;
-            border-radius: inherit;
-            transform: translateX(-100%);
-            transition: var(--transition-2);
-        }
-        
-        .btn:is(:hover, :focus)::before { transform: translateX(0); }
-        
-        .img-holder {
-            aspect-ratio: var(--width) / var(--height);
-            background-color: var(--light-gray);
-            overflow: hidden;
-        }
-        
-        .img-cover {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .section-subtitle {
-            font-size: var(--fs-5);
-            text-transform: uppercase;
-            font-weight: var(--fw-500);
-            letter-spacing: 1px;
-            text-align: center;
-            margin-block-end: 15px;
-        }
-        
-        .section-text {
-            font-size: var(--fs-5);
-            text-align: center;
-            margin-block: 15px 25px;
-        }
-        
-        .grid-list {
-            display: grid;
-            gap: 30px;
-        }
-        
-        /*-----------------------------------*\
-          #HEADER
-        \*-----------------------------------*/
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: var(--shadow-1);
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        
-        .header.active {
-            transform: translateY(-100%);
-            animation: slideIn 0.5s ease forwards;
-        }
-        
-        @keyframes slideIn {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(0); }
-        }
-        
-        body.dark-mode .header {
-            background: rgba(15, 23, 42, 0.95);
-        }
-        
-        .header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 24px;
-            padding: 14px 32px;
-            transition: padding 0.25s ease;
-        }
-        
-        .logo {
-            flex-shrink: 0;
-            line-height: 0;
-        }
-        
-        .logo img {
-            height: 44px;
-            transition: height 0.25s ease;
-        }
-        
-        .navbar {
-            display: flex;
-            align-items: center;
-            flex: 1;
-            justify-content: center;
-        }
-        
-        .navbar-list {
-            display: flex;
-            align-items: center;
-            gap: 36px;
-            list-style: none;
-        }
-        
-        .navbar-link {
-            font-weight: 500;
-            color: var(--eerie-black-1);
-            transition: color 0.2s ease;
-            position: relative;
-            padding: 8px 0;
-            font-size: 1.55rem;
-            text-decoration: none;
-        }
-        
-        body.dark-mode .navbar-link {
-            color: #e2e8f0;
-        }
-        
-        .navbar-link:hover {
-            color: #00BFFF;
-        }
-        
-        .navbar-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2.5px;
-            background: #00BFFF;
-            transition: width 0.25s ease;
-            border-radius: 2px;
-        }
-        
-        .navbar-link:hover::after,
-        .navbar-link.active::after {
-            width: 100%;
-        }
-        
-        .navbar-link.active {
-            color: #00BFFF;
-        }
-        
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            flex-shrink: 0;
-        }
-        
-        .theme-toggle {
-            background: rgba(0, 0, 0, 0.04);
-            border: none;
-            font-size: 1.8rem;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 50%;
-            width: 42px;
-            height: 42px;
-            color: var(--eerie-black-1);
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* Both icons inside toggle - hidden/shown via CSS based on body class */
-        .theme-toggle i {
-            position: absolute;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-        
-        /* Default light mode: show moon, hide sun */
-        .theme-toggle .fa-moon {
-            opacity: 1;
-            transform: scale(1);
-        }
-        
-        .theme-toggle .fa-sun {
-            opacity: 0;
-            transform: scale(0.5);
-        }
-        
-        /* Dark mode: hide moon, show sun */
-        body.dark-mode .theme-toggle .fa-moon {
-            opacity: 0;
-            transform: scale(0.5);
-        }
-        
-        body.dark-mode .theme-toggle .fa-sun {
-            opacity: 1;
-            transform: scale(1);
-        }
-        
-        .portal-btn {
-            padding: 9px 22px;
-            border-radius: 40px;
-            font-weight: 600;
-            text-decoration: none;
-            font-size: 1.35rem;
-        }
-        
-        .portal-btn-analytics {
-            background: #00BFFF;
-            color: #ffffff;
-        }
-        
-        .portal-btn-finance {
-            background: rgba(0, 191, 255, 0.08);
-            color: #00BFFF;
-            border: 1px solid rgba(0, 191, 255, 0.4);
-        }
-        
-        .menu-btn {
-            display: none;
-            background: rgba(0, 0, 0, 0.04);
-            border: none;
-            font-size: 2.2rem;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 12px;
-            width: 44px;
-            height: 44px;
-        }
-        
-        @media (max-width: 991px) {
-            .navbar {
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: 85%;
-                height: 100vh;
-                background: rgba(255, 255, 255, 0.96);
-                backdrop-filter: blur(24px);
-                z-index: 1001;
-                transition: right 0.35s ease;
-                padding: 24px 20px;
-                flex-direction: column;
-            }
-            
-            .navbar.active {
-                right: 0;
-            }
-            
-            .navbar-list {
-                flex-direction: column;
-                gap: 8px;
-                width: 100%;
-            }
-            
-            .navbar-link {
-                display: block;
-                padding: 14px 16px;
-            }
-            
-            .portal-buttons-header {
-                display: none;
-            }
-            
-            .menu-btn {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .mobile-portal-buttons {
-                display: flex;
-                flex-direction: column;
-                gap: 14px;
-                margin-top: 32px;
-                padding-top: 24px;
-                border-top: 1px solid rgba(0, 0, 0, 0.08);
-            }
-            
-            .mobile-portal-btn {
-                padding: 14px 20px;
-                border-radius: 44px;
-                font-weight: 600;
-                text-align: center;
-                text-decoration: none;
-            }
-            
-            .mobile-portal-btn-analytics {
-                background: #00BFFF;
-                color: #ffffff;
-            }
-            
-            .mobile-portal-btn-finance {
-                background: transparent;
-                color: #00BFFF;
-                border: 1.5px solid #00BFFF;
-            }
-        }
-        
-        .overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s ease;
-            z-index: 1000;
-        }
-        
-        .overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        
-        body.navbar-open {
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-        }
-        
-        @media (min-width: 992px) {
-            .navbar {
-                position: static;
-                right: auto;
-                width: auto;
-                height: auto;
-                background: none;
-                backdrop-filter: none;
-                padding: 0;
-                overflow: visible;
-            }
-            
-            .navbar .wrapper,
-            .nav-close-btn,
-            .mobile-portal-buttons {
-                display: none;
-            }
-            
-            .navbar-list {
-                flex-direction: row;
-                gap: 36px;
-            }
-            
-            .menu-btn {
-                display: none;
-            }
-            
-            .overlay {
-                display: none;
-            }
-            
-            .portal-buttons-header {
-                display: flex;
-            }
-        }
-        
-        /*============================================
-          #HERO SECTION
-        ============================================*/
-        .hero {
-            padding-top: 130px;
-            padding-bottom: 80px;
-            background: linear-gradient(135deg, #00BFFF 0%, #0099cc 100%);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero .container {
-            display: grid;
-            gap: 50px;
-        }
-        
-        .hero-content {
-            text-align: center;
-        }
-        
-        .hero .section-title {
-            font-size: 5rem;
-            color: white;
-            margin-bottom: 20px;
-        }
-        
-        .hero .section-title span {
-            color: #FFD700;
-        }
-        
-        .hero-text {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.8rem;
-            max-width: 700px;
-            margin: 0 auto 25px;
-        }
-        
-        .hero-stats {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 40px;
-            flex-wrap: wrap;
-        }
-        
-        .stat-card {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 15px 25px;
-            border-radius: var(--radius-15);
-            min-width: 130px;
-        }
-        
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: white;
-        }
-        
-        .stat-label {
-            font-size: 1.2rem;
-            color: rgba(255, 255, 255, 0.9);
-        }
-        
-        .hero-banner {
-            display: grid;
-            grid-template-columns: 1fr 0.8fr;
-            align-items: flex-start;
-            gap: 30px;
-        }
-        
-        .hero-banner .img-holder.one {
-            border-top-right-radius: 70px;
-            border-bottom-left-radius: 110px;
-        }
-        
-        .hero-banner .img-holder.two {
-            border-top-left-radius: 50px;
-            border-bottom-right-radius: 90px;
-        }
-        
-        @media (min-width: 992px) {
-            .hero .container {
-                grid-template-columns: 1fr 1fr;
-                align-items: center;
-                gap: 60px;
-            }
-            
-            .hero-content {
-                text-align: left;
-            }
-            
-            .hero .section-title,
-            .hero-text {
-                text-align: left;
-                margin-left: 0;
-                margin-right: 0;
-            }
-            
-            .hero .btn {
-                margin-inline: 0;
-            }
-            
-            .hero-stats {
-                justify-content: flex-start;
-            }
-        }
-        
-        @media (max-width: 991px) {
-            .hero-banner {
-                display: none;
-            }
-        }
-        
+/*-----------------------------------*\
+  #UNIFORM SYSTEM STYLES
+\*-----------------------------------*/
+body {
+    background: linear-gradient(135deg, #fffdf5 0%, #fffaf0 50%, #fff5eb 100%);
+    /* Fallback - soft cream */
+    background-color: #fffdf5;
+    font-family: "Merriweather", serif;
+    color: #000;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
 
-        
-        /* Career Options Cards */
-        .career-options {
-            padding: 60px 0;
-            background: var(--white);
-        }
-        
-        .options-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            margin-top: 40px;
-        }
-        
-        .option-card {
-            background: var(--white);
-            border-radius: var(--radius-15);
-            padding: 40px 30px;
-            text-align: center;
-            transition: all 0.3s ease;
-            border: 1px solid var(--platinum);
-            cursor: pointer;
-            text-decoration: none;
-            display: block;
-        }
-        
-        .option-card:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--shadow-3);
-        }
-        
-        .option-icon {
-            width: 80px;
-            height: 80px;
-            background: rgba(0, 191, 255, 0.1);
-            border-radius: var(--radius-circle);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.5rem;
-            color: #00BFFF;
-        }
-        
-        .option-card h3 {
-            font-size: 2rem;
-            margin-bottom: 15px;
-        }
-        
-        .option-card p {
-            font-size: 1.4rem;
-            color: var(--gray-web);
-            margin-bottom: 20px;
-        }
-        
-        .option-btn {
-            display: inline-block;
-            padding: 10px 25px;
-            background: #00BFFF;
-            color: white;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 1.4rem;
-            transition: all 0.3s ease;
-        }
-        
-        .option-card:hover .option-btn {
-            transform: translateX(5px);
-            background: #009ac9;
-        }
-        
-        /* Footer */
-        .footer {
-            background-color: var(--eerie-black-2);
-            color: var(--gray-x-11);
-            padding-block-start: 50px;
-        }
-        
-        .footer-top {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
-            padding-block-end: 35px;
-        }
-        
-        .footer-list-title {
-            color: var(--white);
-            font-family: var(--ff-league_spartan);
-            font-size: 1.6rem;
-            font-weight: 600;
-            margin-block-end: 12px;
-        }
-        
-        .footer-link {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            padding-block: 4px;
-            font-size: 1.3rem;
-        }
-        
-        .footer-link:hover {
-            color: var(--kappel);
-        }
-        
-        .copyright {
-            text-align: center;
-            padding-block: 25px;
-            border-block-start: 1px solid var(--eerie-black-1);
-            font-size: 1.25rem;
-        }
-        
-        .reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.7s ease;
-        }
-        
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .back-top-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background-color: var(--kappel);
-            color: var(--white);
-            font-size: 1.6rem;
-            padding: 12px;
-            border-radius: var(--radius-circle);
-            z-index: 3;
-            opacity: 0;
-            pointer-events: none;
-            transition: var(--transition-1);
-        }
-        
-        .back-top-btn.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        
-        main {
-            min-height: 400px;
-        }
-        
-        @media (max-width: 991px) {
-            .pathways-grid,
-            .options-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .hero .section-title {
-                font-size: 3rem;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .pathways-grid,
-            .options-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .footer-top {
-                grid-template-columns: 1fr;
-            }
-        }
+body, button, input, textarea, select, p, li, a, span {
+    font-family: "Merriweather", serif;
+}
+
+h1, h2, h3, h4, .section-title, .hero-stat-number {
+    font-family: 'League Spartan', "Merriweather", serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    text-transform: capitalize;
+}
+
+/*-----------------------------------*\
+  #CUSTOM PROPERTY
+\*-----------------------------------*/
+:root {
+    --kappel: hsl(170, 75%, 41%);
+    --selective-yellow: hsl(42, 94%, 55%);
+    --eerie-black-1: hsl(0, 0%, 9%);
+    --eerie-black-2: hsl(180, 3%, 7%);
+    --quick-silver: hsl(0, 0%, 65%);
+    --radical-red: hsl(351, 83%, 61%);
+    --light-gray: hsl(0, 0%, 80%);
+    --isabelline: hsl(36, 33%, 94%);
+    --gray-x-11: hsl(0, 0%, 73%);
+    --platinum: hsl(0, 0%, 90%);
+    --gray-web: hsl(0, 0%, 50%);
+    --white: hsl(0, 0%, 100%);
+    
+    --ff-league_spartan: 'League Spartan', sans-serif;
+    --ff-poppins: 'Poppins', sans-serif;
+    
+    --fs-1: 4.2rem;
+    --fs-2: 3.2rem;
+    --fs-3: 2.3rem;
+    --fs-4: 1.8rem;
+    --fs-5: 1.5rem;
+    --fs-6: 1.4rem;
+    --fs-7: 1.3rem;
+    
+    --fw-500: 500;
+    --fw-600: 600;
+    
+    --section-padding: 75px;
+    
+    --shadow-1: 0 6px 15px 0 hsla(0, 0%, 0%, 0.05);
+    --shadow-2: 0 10px 30px hsla(0, 0%, 0%, 0.06);
+    --shadow-3: 0 10px 50px 0 hsla(220, 53%, 22%, 0.1);
+    
+    --radius-pill: 500px;
+    --radius-circle: 50%;
+    --radius-3: 3px;
+    --radius-5: 5px;
+    --radius-10: 10px;
+    --radius-15: 15px;
+    
+    --transition-1: 0.25s ease;
+    --transition-2: 0.5s ease;
+}
+
+/* Dark Mode */
+body.dark-mode {
+    --eerie-black-1: hsl(0, 0%, 90%);
+    --eerie-black-2: hsl(0, 0%, 95%);
+    --gray-web: hsl(0, 0%, 70%);
+    --light-gray: hsl(0, 0%, 30%);
+    --isabelline: hsl(36, 20%, 15%);
+    --platinum: hsl(0, 0%, 25%);
+    --white: hsl(0, 0%, 15%);
+    background: linear-gradient(170deg, #3a3a2a 35%, #2a2a28 100%);
+}
+
+body.dark-mode .footer {
+    background-color: #0a0e17;
+}
+
+body.dark-mode .header {
+    background-color: var(--white);
+}
+
+body.dark-mode .navbar-link {
+    color: var(--eerie-black-1);
+}
+
+/*-----------------------------------*\
+  #RESET
+\*-----------------------------------*/
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+li { list-style: none; }
+
+a, img, span, data, input, button, textarea, ion-icon { display: block; }
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+img { height: auto; }
+
+input, button, textarea {
+    background: none;
+    border: none;
+    font: inherit;
+}
+
+input, textarea { width: 100%; }
+
+button { cursor: pointer; }
+
+ion-icon { pointer-events: none; }
+
+address { font-style: normal; }
+
+html {
+    font-family: var(--ff-poppins);
+    font-size: 10px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-size: 1.6rem;
+    line-height: 1.75;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background-color: hsl(0, 0%, 98%); }
+::-webkit-scrollbar-thumb { background-color: hsl(0, 0%, 80%); }
+
+/*-----------------------------------*\
+  #REUSED STYLE
+\*-----------------------------------*/
+.container { 
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-inline: 15px;
+}
+
+.section { 
+    padding-block: var(--section-padding); 
+}
+
+.h1, .h2, .h3 {
+    color: var(--eerie-black-1);
+    font-family: var(--ff-league_spartan);
+    line-height: 1.2;
+}
+
+.h1, .h2 { font-weight: var(--fw-600); }
+.h1 { font-size: var(--fs-1); }
+.h2 { font-size: var(--fs-2); }
+
+.section-title {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.section-title .span {
+    display: inline-block;
+    color: #00BFFF;
+}
+
+.section-subtitle {
+    font-size: var(--fs-5);
+    text-transform: uppercase;
+    font-weight: var(--fw-500);
+    letter-spacing: 1px;
+    text-align: center;
+    margin-block-end: 15px;
+    color: #00BFFF;
+}
+
+.btn {
+    background-color: #00BFFF;
+    color: white;
+    font-family: var(--ff-league_spartan);
+    font-size: var(--fs-4);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: max-content;
+    padding: 12px 28px;
+    border-radius: 60px;
+    text-decoration: none;
+    transition: var(--transition-1);
+    font-weight: 600;
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 191, 255, 0.3);
+    background-color: #009ac9;
+}
+
+/*-----------------------------------*\
+  #HEADER
+\*-----------------------------------*/
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 253, 245, 0.85);
+    backdrop-filter: blur(16px);
+    z-index: 1000;
+    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.header.active {
+    background: rgba(255, 253, 245, 0.92);
+    backdrop-filter: blur(20px);
+    padding-block: 0;
+}
+
+body.dark-mode .header {
+    background: rgba(25, 30, 35, 0.85);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 14px 32px;
+    transition: padding 0.25s ease;
+}
+
+.header.active .container {
+    padding: 8px 32px;
+}
+
+.logo {
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.logo img {
+    width: auto;
+    height: 44px;
+    max-width: 150px;
+    object-fit: contain;
+    transition: height 0.25s ease;
+}
+
+.header.active .logo img {
+    height: 38px;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+}
+
+.navbar-list {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.navbar-link {
+    font-weight: 500;
+    color: var(--eerie-black-1);
+    transition: color 0.2s ease;
+    position: relative;
+    padding: 8px 0;
+    font-size: 1.55rem;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+}
+
+body.dark-mode .navbar-link {
+    color: #f1f5f9;
+}
+
+.navbar-link:hover, .navbar-link.active {
+    color: #00BFFF;
+}
+
+.navbar-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2.5px;
+    background: #00BFFF;
+    transition: width 0.25s ease;
+    border-radius: 2px;
+}
+
+.navbar-link.active::after, .navbar-link:hover::after {
+    width: 100%;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-shrink: 0;
+}
+
+.theme-toggle {
+    background: rgba(0, 0, 0, 0.04);
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--eerie-black-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.05);
+    background: rgba(0, 191, 255, 0.12);
+}
+
+.theme-toggle .fa-sun { display: none; }
+body.dark-mode .theme-toggle .fa-moon { display: none; }
+body.dark-mode .theme-toggle .fa-sun { display: block; }
+
+.portal-buttons-header {
+    display: flex;
+    gap: 12px;
+}
+
+.portal-btn {
+    padding: 9px 22px;
+    border-radius: 40px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.35rem;
+    backdrop-filter: blur(4px);
+}
+
+.portal-btn-analytics {
+    background: #00BFFF;
+    color: #ffffff;
+}
+
+.portal-btn-analytics:hover {
+    background: #009ac9;
+    transform: translateY(-2px);
+}
+
+.portal-btn-finance {
+    background: rgba(0, 191, 255, 0.08);
+    color: #00BFFF;
+    border: 1px solid rgba(0, 191, 255, 0.4);
+}
+
+.portal-btn-finance:hover {
+    background: #00BFFF;
+    color: #ffffff;
+}
+
+.menu-btn {
+    display: none;
+    background: rgba(0, 0, 0, 0.04);
+    border: none;
+    font-size: 2.2rem;
+    cursor: pointer;
+    color: var(--eerie-black-1);
+    padding: 8px;
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+}
+
+/* Mobile Drawer */
+@media (max-width: 991px) {
+    .navbar {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: min(85%, 360px);
+        height: 100vh;
+        background: rgba(255, 253, 245, 0.96);
+        backdrop-filter: blur(24px);
+        z-index: 1001;
+        transition: right 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        overflow-y: auto;
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .navbar.active { right: 0; }
+    
+    .navbar .wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 20px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .nav-close-btn {
+        background: rgba(0, 0, 0, 0.05);
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+    }
+    
+    .navbar-list {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+    
+    .navbar-link {
+        display: block;
+        padding: 14px 16px;
+        font-size: 1.6rem;
+        border-radius: 14px;
+    }
+    
+    .navbar-link:hover, .navbar-link.active {
+        background: rgba(0, 191, 255, 0.08);
+        color: #00BFFF;
+        transform: translateX(3px);
+    }
+    
+    .navbar-link::after { display: none; }
+    
+    .mobile-portal-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .mobile-portal-btn {
+        padding: 14px 20px;
+        border-radius: 44px;
+        font-weight: 600;
+        font-size: 1.45rem;
+        text-align: center;
+    }
+    
+    .mobile-portal-btn-analytics {
+        background: #00BFFF;
+        color: #ffffff;
+    }
+    
+    .mobile-portal-btn-finance {
+        background: transparent;
+        color: #00BFFF;
+        border: 1.5px solid #00BFFF;
+    }
+    
+    .portal-buttons-header { display: none; }
+    .menu-btn { display: flex; }
+    .header .container { padding: 12px 20px; }
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 1000;
+}
+
+.overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+@media (min-width: 992px) {
+    .navbar {
+        position: static;
+        right: auto;
+        width: auto;
+        height: auto;
+        background: none;
+        backdrop-filter: none;
+        padding: 0;
+        overflow: visible;
+    }
+    .navbar .wrapper, .nav-close-btn, .mobile-portal-buttons { display: none; }
+    .navbar-list { flex-direction: row; gap: 36px; }
+    .menu-btn { display: none; }
+    .overlay { display: none; }
+    .portal-buttons-header { display: flex; }
+}
+
+@media (max-width: 480px) {
+    .header .container { padding: 10px 16px; }
+    .logo img { height: 34px; }
+    .menu-btn { width: 40px; height: 40px; font-size: 2rem; }
+    .theme-toggle { width: 38px; height: 38px; font-size: 1.6rem; }
+}
+
+/*-----------------------------------*\
+  #HERO SECTION
+\*-----------------------------------*/
+.hero {
+    padding-top: 140px;
+    padding-bottom: 70px;
+    background: linear-gradient(135deg, #e8a84c, #c97e2a);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+body.dark-mode .hero {
+    background: linear-gradient(135deg, #c48a3c, #a66824);
+}
+
+.hero .section-title {
+    color: white;
+    margin-bottom: 20px;
+}
+
+.hero .section-title span {
+    color: #2c2418;
+}
+
+.hero-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.8rem;
+    max-width: 700px;
+    margin: 0 auto 25px;
+}
+
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 20px 30px;
+    border-radius: 20px;
+    min-width: 130px;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white;
+    font-family: 'League Spartan', "Merriweather", serif;
+}
+
+.stat-label {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/*-----------------------------------*\
+  #PATHWAYS SECTION
+\*-----------------------------------*/
+.pathways-section {
+    padding: 70px 0;
+}
+
+.pathways-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.pathway-card {
+    background: rgba(255, 253, 248, 0.85);
+    backdrop-filter: blur(2px);
+    border-radius: 24px;
+    padding: 35px 25px;
+    text-align: center;
+    transition: all 0.35s ease;
+    border: 1px solid rgba(230, 200, 140, 0.4);
+    cursor: pointer;
+}
+
+.pathway-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 254, 252, 0.95);
+    border-color: #e6b450;
+}
+
+.pathway-icon {
+    width: 80px;
+    height: 80px;
+    background: #fef0d4;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 2.5rem;
+    transition: all 0.3s ease;
+}
+
+.pathway-card:nth-child(1) .pathway-icon { color: #00BFFF; }
+.pathway-card:nth-child(2) .pathway-icon { color: #8B5CF6; }
+.pathway-card:nth-child(3) .pathway-icon { color: #10B981; }
+
+.pathway-card:hover .pathway-icon {
+    transform: scale(1.05);
+}
+
+.pathway-card h3 {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    color: #2c2418;
+}
+
+.pathway-card p {
+    font-size: 1.4rem;
+    line-height: 1.6;
+    color: #5c4b34;
+}
+
+.pathway-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 8px 20px;
+    background: transparent;
+    color: #00BFFF;
+    border: 1px solid #00BFFF;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 1.3rem;
+    transition: all 0.3s ease;
+}
+
+.pathway-card:hover .pathway-btn {
+    background: #00BFFF;
+    color: white;
+    transform: translateX(5px);
+}
+
+body.dark-mode .pathway-card {
+    background: rgba(50, 45, 38, 0.85);
+    border-color: rgba(210, 170, 90, 0.3);
+}
+
+body.dark-mode .pathway-card:hover {
+    background: rgba(65, 58, 48, 0.92);
+}
+
+body.dark-mode .pathway-card h3 {
+    color: #f7e5c2;
+}
+
+body.dark-mode .pathway-card p {
+    color: #cfc3a8;
+}
+
+body.dark-mode .pathway-icon {
+    background: #6b5538;
+}
+
+/*-----------------------------------*\
+  #CAREER OPTIONS SECTION
+\*-----------------------------------*/
+.career-options {
+    padding: 70px 0;
+    background: rgba(255, 253, 245, 0.5);
+    border-radius: 40px;
+    margin: 20px 0;
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.option-card {
+    background: rgba(255, 253, 248, 0.85);
+    backdrop-filter: blur(2px);
+    border-radius: 24px;
+    padding: 40px 30px;
+    text-align: center;
+    transition: all 0.35s ease;
+    border: 1px solid rgba(230, 200, 140, 0.4);
+    text-decoration: none;
+    display: block;
+}
+
+.option-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 254, 252, 0.95);
+    border-color: #e6b450;
+}
+
+.option-icon {
+    width: 80px;
+    height: 80px;
+    background: #fef0d4;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 2.5rem;
+    color: #00BFFF;
+    transition: all 0.3s ease;
+}
+
+.option-card:hover .option-icon {
+    transform: scale(1.05);
+}
+
+.option-card h3 {
+    font-size: 1.8rem;
+    margin-bottom: 15px;
+    color: #2c2418;
+}
+
+.option-card p {
+    font-size: 1.4rem;
+    color: #5c4b34;
+    margin-bottom: 20px;
+}
+
+.option-btn {
+    display: inline-block;
+    padding: 10px 25px;
+    background: #00BFFF;
+    color: white;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 1.3rem;
+    transition: all 0.3s ease;
+}
+
+.option-card:hover .option-btn {
+    transform: translateX(5px);
+    background: #009ac9;
+}
+
+body.dark-mode .career-options {
+    background: rgba(30, 28, 22, 0.5);
+}
+
+body.dark-mode .option-card {
+    background: rgba(50, 45, 38, 0.85);
+    border-color: rgba(210, 170, 90, 0.3);
+}
+
+body.dark-mode .option-card:hover {
+    background: rgba(65, 58, 48, 0.92);
+}
+
+body.dark-mode .option-card h3 {
+    color: #f7e5c2;
+}
+
+body.dark-mode .option-card p {
+    color: #cfc3a8;
+}
+
+body.dark-mode .option-icon {
+    background: #6b5538;
+}
+
+/*-----------------------------------*\
+  #MODAL
+\*-----------------------------------*/
+.pathway-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.pathway-modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: rgba(255, 253, 248, 0.98);
+    backdrop-filter: blur(10px);
+    border-radius: 30px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 30px;
+    position: relative;
+    border: 1px solid rgba(230, 200, 140, 0.5);
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #5c4b34;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    color: #00BFFF;
+    transform: scale(1.1);
+}
+
+.subject-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.subject-chip {
+    background: #fef0d4;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 1.2rem;
+    color: #b86f2c;
+}
+
+body.dark-mode .modal-content {
+    background: rgba(50, 45, 38, 0.98);
+    border-color: rgba(210, 170, 90, 0.3);
+}
+
+body.dark-mode .modal-content h2,
+body.dark-mode .modal-content h3 {
+    color: #f7e5c2;
+}
+
+body.dark-mode .modal-content p,
+body.dark-mode .modal-content li {
+    color: #cfc3a8;
+}
+
+body.dark-mode .subject-chip {
+    background: #6b5538;
+    color: #f3cd81;
+}
+
+body.dark-mode .modal-close {
+    color: #cfc3a8;
+}
+
+/*-----------------------------------*\
+  #FOOTER
+\*-----------------------------------*/
+.footer {
+    background-color: #2c2418;
+    color: #cfc3a8;
+    padding-block-start: 60px;
+    margin-top: 40px;
+    border-radius: 30px 30px 0 0;
+}
+
+.footer-top {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    padding-block-end: 40px;
+}
+
+.footer-list-title {
+    color: #f7e5c2;
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-block-end: 12px;
+}
+
+.footer-link {
+    transition: var(--transition-1);
+    display: block;
+    padding-block: 4px;
+    font-size: 1.3rem;
+    color: #cfc3a8;
+}
+
+.footer-link:hover {
+    color: #e9b35f;
+}
+
+.copyright {
+    text-align: center;
+    padding-block: 25px;
+    border-block-start: 1px solid rgba(207, 195, 168, 0.2);
+    font-size: 1.25rem;
+}
+
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.7s ease;
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.back-top-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: #e9b35f;
+    color: #2c2418;
+    font-size: 1.6rem;
+    padding: 12px;
+    border-radius: 50%;
+    z-index: 3;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition-1);
+    cursor: pointer;
+}
+
+.back-top-btn.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.back-top-btn:hover {
+    background-color: #d4943c;
+    transform: translateY(-3px);
+}
+
+@media (max-width: 991px) {
+    .pathways-grid, .options-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .hero .section-title { font-size: 3rem; }
+}
+
+@media (max-width: 768px) {
+    .pathways-grid, .options-grid {
+        grid-template-columns: 1fr;
+    }
+    .footer-top {
+        grid-template-columns: 1fr;
+    }
+    .hero-stats {
+        flex-direction: column;
+        align-items: center;
+    }
+    .stat-card {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+main {
+    min-height: 400px;
+}
     </style>
 </head>
 <body>
@@ -1252,10 +1178,10 @@ $quiz_questions = [
 
 <main>
     <!-- Hero Section -->
-    <section class="hero has-bg-image" id="home" aria-label="home">
+    <section class="hero">
         <div class="container">
             <div class="hero-content reveal">
-                <h1 class="h1 section-title">
+                <h1 class="section-title">
                     Discover Your Future <span class="span">Career Path</span>
                 </h1>
                 <p class="hero-text">
@@ -1276,24 +1202,45 @@ $quiz_questions = [
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- CBC Pathways Section -->
+    <section class="pathways-section">
+        <div class="container">
+            <p class="section-subtitle">Kenya's CBC Pathways</p>
+            <h2 class="section-title">Choose Your <span>Learning Path</span></h2>
             
-            <div class="hero-banner">
-                <div class="img-holder one" style="--width: 270; --height: 300;">
-                    <img src="/images/school-bg.png" width="270" height="300" alt="hero banner" class="img-cover">
+            <div class="pathways-grid">
+                <div class="pathway-card reveal" onclick="showPathwayDetail('stem')">
+                    <div class="pathway-icon"><i class="fas fa-microscope"></i></div>
+                    <h3>STEM Pathway</h3>
+                    <p>Science, Technology, Engineering, and Mathematics</p>
+                    <span class="pathway-btn">Explore →</span>
                 </div>
-                <div class="img-holder two" style="--width: 240; --height: 370;">
-                    <img src="/images/logo.png" width="240" height="370" alt="hero banner" class="img-cover">
+                
+                <div class="pathway-card reveal" onclick="showPathwayDetail('social_sciences')">
+                    <div class="pathway-icon"><i class="fas fa-globe-africa"></i></div>
+                    <h3>Social Sciences Pathway</h3>
+                    <p>Humanities, Business, and Social Studies</p>
+                    <span class="pathway-btn">Explore →</span>
+                </div>
+                
+                <div class="pathway-card reveal" onclick="showPathwayDetail('arts_sports')">
+                    <div class="pathway-icon"><i class="fas fa-palette"></i></div>
+                    <h3>Arts & Sports Science</h3>
+                    <p>Creative Arts, Design, and Sports Science</p>
+                    <span class="pathway-btn">Explore →</span>
                 </div>
             </div>
         </div>
     </section>
 
-
-    <!-- Career Options Cards -->
+    <!-- Career Options Section -->
     <section class="career-options">
         <div class="container">
             <p class="section-subtitle">How Would You Like to Proceed?</p>
-            <h2 class="section-title">Choose Your <span>Career Discovery Method</span></h2>
+            <h2 class="section-title">Choose Your <span>Discovery Method</span></h2>
             
             <div class="options-grid">
                 <a href="career-know-your-goal.php" class="option-card reveal">
@@ -1337,15 +1284,9 @@ $quiz_questions = [
                 <a href="index.php" class="logo">
                     <img src="/images/logo.png" alt="EduScore logo">
                 </a>
-                <p class="footer-brand-text">Modern school management system for Kenyan educational institutions.</p>
-                <div>
-                    <span>Email:</span>
-                    <a href="mailto:eduscoreke@gmail.com" class="footer-link">eduscoreke@gmail.com</a>
-                </div>
-                <div>
-                    <span>Phone:</span>
-                    <a href="tel:+254799115282" class="footer-link">+254 799 115 282</a>
-                </div>
+                <p>Modern school management system for Kenyan educational institutions.</p>
+                <div><span>Email:</span> <a href="mailto:eduscoreke@gmail.com" class="footer-link">eduscoreke@gmail.com</a></div>
+                <div><span>Phone:</span> <a href="tel:+254799115282" class="footer-link">+254 799 115 282</a></div>
             </div>
             <ul class="footer-list">
                 <li><p class="footer-list-title">Links</p></li>
@@ -1370,8 +1311,7 @@ $quiz_questions = [
     </div>
 </footer>
 
-<!-- Back to Top Button -->
-<a href="#top" class="back-top-btn" aria-label="back top top" data-back-top-btn>
+<a href="#top" class="back-top-btn" aria-label="back to top" data-back-top-btn>
     <ion-icon name="chevron-up" aria-hidden="true"></ion-icon>
 </a>
 
@@ -1418,17 +1358,14 @@ const closeNavbar = function () {
 }
 
 navTogglers.forEach(toggler => toggler.addEventListener("click", toggleNavbar));
-
-if (overlay) {
-    overlay.addEventListener("click", closeNavbar);
-}
+if (overlay) overlay.addEventListener("click", closeNavbar);
 
 // Header active on scroll
 const header = document.querySelector("[data-header]");
 const backTopBtn = document.querySelector("[data-back-top-btn]");
 
 window.addEventListener("scroll", function() {
-    if (window.scrollY > 100) {
+    if (window.scrollY > 50) {
         header.classList.add("active");
         backTopBtn.classList.add("active");
     } else {
@@ -1440,9 +1377,7 @@ window.addEventListener("scroll", function() {
 // Scroll reveal
 const reveals = document.querySelectorAll('.reveal');
 const revealObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add('active');
-    });
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
 }, { threshold: 0.15 });
 reveals.forEach(el => revealObserver.observe(el));
 
@@ -1464,7 +1399,7 @@ function showPathwayDetail(pathwayKey) {
     const modalContent = document.getElementById('pathwayModalContent');
     
     modalContent.innerHTML = `
-        <h2 style="color: var(--eerie-black-1); margin-bottom: 10px;">${pathway.name}</h2>
+        <h2 style="margin-bottom: 10px;">${pathway.name}</h2>
         <p style="color: ${pathway.color}; margin-bottom: 20px; font-weight: 600;">${pathway.full_name}</p>
         <p style="margin-bottom: 20px;">${pathway.description}</p>
         
@@ -1483,22 +1418,12 @@ function showPathwayDetail(pathwayKey) {
             ${Object.entries(pathway.elective_subjects).map(([subject, desc]) => `<li><strong>${subject}:</strong> ${desc}</li>`).join('')}
         </ul>
         
-        <h3 style="margin-bottom: 10px;">Learning Outcomes:</h3>
-        <div class="subject-chips" style="margin-bottom: 20px;">
-            ${pathway.learning_outcomes.map(o => `<span class="subject-chip">${o}</span>`).join('')}
-        </div>
-        
         <h3 style="margin-bottom: 10px;">Career Links:</h3>
         <div class="subject-chips" style="margin-bottom: 20px;">
             ${pathway.career_links.map(c => `<span class="subject-chip">${c}</span>`).join('')}
         </div>
         
-        <h3 style="margin-bottom: 10px;">University Pathways:</h3>
-        <div class="subject-chips" style="margin-bottom: 20px;">
-            ${pathway.university_pathways.map(u => `<span class="subject-chip">${u}</span>`).join('')}
-        </div>
-        
-        <button class="quiz-btn next" onclick="closePathwayModal()" style="margin-top: 20px;">Close</button>
+        <button onclick="closePathwayModal()" style="background: #00BFFF; color: white; padding: 10px 25px; border-radius: 30px; font-weight: 600; cursor: pointer; margin-top: 20px;">Close</button>
     `;
     modal.classList.add('active');
 }
@@ -1506,7 +1431,14 @@ function showPathwayDetail(pathwayKey) {
 function closePathwayModal() {
     document.getElementById('pathwayModal').classList.remove('active');
 }
-</script>
 
+// Close modal on outside click
+window.onclick = function(event) {
+    const modal = document.getElementById('pathwayModal');
+    if (event.target === modal) {
+        closePathwayModal();
+    }
+}
+</script>
 </body>
 </html>

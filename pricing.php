@@ -1,19 +1,21 @@
 <?php
-// Enable error reporting for debugging (disable in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
 session_start();
 
+// Include config
 require_once 'includes/config.php';
 
+// Define base URL and canonical URL
 $base_url = "https://eduscore.co.ke";
 $current_url = $base_url . $_SERVER['REQUEST_URI'];
 $canonical_url = $base_url . "/pricing";
 
+// Enhanced SEO metadata
 $page_title = "Pricing | EduScore - Affordable School Management System Kenya";
-$page_description = "Transparent pricing for Kenyan schools. Choose from our flexible plans for primary, junior secondary, and senior secondary schools.";
-$page_keywords = "pricing, school management system price, EduScore pricing, school ERP cost Kenya";
+$page_description = "Transparent and affordable pricing for Kenyan schools. Choose from flexible plans for primary, junior secondary, and senior secondary schools.";
+$page_keywords = "pricing, school management system price, EduScore pricing, school ERP cost Kenya, affordable school software";
 $page_url = $current_url;
 $page_image = $base_url . "images/og-image.jpg";
 
@@ -23,7 +25,7 @@ if (isset($_SESSION['user_id']) && !isset($_GET['skip_redirect'])) {
     exit;
 }
 
-// Pricing Data Structure with Public and Private Schools
+// Pricing Data Structure
 $pricing_data = [
     'primary' => [
         'name' => 'Primary School',
@@ -87,741 +89,627 @@ $pricing_data = [
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700;800&family=Poppins:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=League+Spartan:wght@400;500;600;700;800&family=Poppins:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
     
     <style>
-        /*-----------------------------------*\
-          #CUSTOM PROPERTY
-        \*-----------------------------------*/
-        :root {
-            --kappel: hsl(170, 75%, 41%);
-            --kappel_15: hsla(170, 75%, 41%, 0.15);
-            --selective-yellow: hsl(42, 94%, 55%);
-            --eerie-black-1: hsl(0, 0%, 9%);
-            --eerie-black-2: hsl(180, 3%, 7%);
-            --quick-silver: hsl(0, 0%, 65%);
-            --radical-red: hsl(351, 83%, 61%);
-            --light-gray: hsl(0, 0%, 80%);
-            --isabelline: hsl(36, 33%, 94%);
-            --gray-x-11: hsl(0, 0%, 73%);
-            --platinum: hsl(0, 0%, 90%);
-            --gray-web: hsl(0, 0%, 50%);
-            --white: hsl(0, 0%, 100%);
-            
-            --ff-league_spartan: 'League Spartan', sans-serif;
-            --ff-poppins: 'Poppins', sans-serif;
-            
-            --fs-1: 4.2rem;
-            --fs-2: 3.2rem;
-            --fs-3: 2.3rem;
-            --fs-4: 1.8rem;
-            --fs-5: 1.5rem;
-            --fs-6: 1.4rem;
-            --fs-7: 1.3rem;
-            
-            --fw-500: 500;
-            --fw-600: 600;
-            
-            --section-padding: 75px;
-            
-            --shadow-1: 0 5px 10px rgba(0,0,0,0.1);
-            --shadow-2: 0 10px 30px hsla(0, 0%, 0%, 0.06);
-            --shadow-3: 0 10px 50px 0 hsla(220, 53%, 22%, 0.1);
-            
-            --radius-pill: 500px;
-            --radius-circle: 50%;
-            --radius-3: 3px;
-            --radius-5: 5px;
-            --radius-10: 10px;
-            --radius-15: 15px;
-            --radius-25: 25px;
-            
-            --transition-1: 0.25s ease;
-            --transition-2: 0.5s ease;
-            --cubic-in: cubic-bezier(0.51, 0.03, 0.64, 0.28);
-            --cubic-out: cubic-bezier(0.33, 0.85, 0.4, 0.96);
-        }
-        
-        /* Dark Mode Overrides */
-        body.dark-mode {
-            --eerie-black-1: hsl(0, 0%, 90%);
-            --eerie-black-2: hsl(0, 0%, 95%);
-            --gray-web: hsl(0, 0%, 70%);
-            --light-gray: hsl(0, 0%, 30%);
-            --isabelline: hsl(36, 20%, 15%);
-            --platinum: hsl(0, 0%, 25%);
-            --white: hsl(0, 0%, 15%);
-        }
-        
-        body.dark-mode .footer {
-            background-color: #0a0e17;
-        }
-        
-        body.dark-mode .header {
-            background-color: var(--white);
-        }
-        
-        body.dark-mode .navbar-link {
-            color: var(--eerie-black-1);
-        }
-        
-        /*-----------------------------------*\
-          #RESET
-        \*-----------------------------------*/
-        *,
-        *::before,
-        *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        li { list-style: none; }
-        
-        a, img, span, data, input, button, textarea, ion-icon { display: block; }
-        
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-        
-        img { height: auto; }
-        
-        input, button, textarea {
-            background: none;
-            border: none;
-            font: inherit;
-        }
-        
-        input, textarea { width: 100%; }
-        
-        button { cursor: pointer; }
-        
-        ion-icon { pointer-events: none; }
-        
-        address { font-style: normal; }
-        
-        html {
-            font-family: var(--ff-poppins);
-            font-size: 10px;
-            scroll-behavior: smooth;
-        }
-        
-        body {
-            background-color: var(--white);
-            color: var(--gray-web);
-            font-size: 1.6rem;
-            line-height: 1.75;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background-color: hsl(0, 0%, 98%); }
-        ::-webkit-scrollbar-thumb { background-color: hsl(0, 0%, 80%); }
-        
-        /*-----------------------------------*\
-          #REUSED STYLE
-        \*-----------------------------------*/
-        .container { 
-            max-width: 1400px;
-            margin: 0 auto;
-            padding-inline: 15px;
-        }
-        
-        .section { 
-            padding-block: var(--section-padding); 
-        }
-        
-        .h1, .h2, .h3 {
-            color: var(--eerie-black-1);
-            font-family: var(--ff-league_spartan);
-            line-height: 1.2;
-        }
-        
-        .h1, .h2 { font-weight: var(--fw-600); }
-        .h1 { font-size: var(--fs-1); }
-        .h2 { font-size: var(--fs-2); }
-        
-        .section-title {
-            --color: var(--radical-red);
-            text-align: center;
-        }
-        
-        .section-title .span {
-            display: inline-block;
-            color: var(--color);
-        }
-        
-        /*-----------------------------------*\
-          #HEADER - GLASSMORPHISM
-        \*-----------------------------------*/
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            z-index: 1000;
-            transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .header.active {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
-            padding-block: 0;
-        }
-        
-        body.dark-mode .header {
-            background: rgba(15, 23, 42, 0.85);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-        
-        body.dark-mode .header.active {
-            background: rgba(15, 23, 42, 0.92);
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
-        }
-        
-        .header .container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 24px;
-            padding: 14px 32px;
-            transition: padding 0.25s ease;
-        }
-        
-        .header.active .container {
-            padding: 8px 32px;
-        }
-        
-        .logo {
-            flex-shrink: 0;
-            line-height: 0;
-        }
-        
-        .logo img {
-            width: auto;
-            height: 44px;
-            max-width: 150px;
-            object-fit: contain;
-            transition: height 0.25s ease;
-        }
-        
-        .header.active .logo img {
-            height: 38px;
-        }
-        
-        .navbar {
-            display: flex;
-            align-items: center;
-            flex: 1;
-            justify-content: center;
-        }
-        
-        .navbar-list {
-            display: flex;
-            align-items: center;
-            gap: 36px;
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        
-        .navbar-link {
-            font-weight: 500;
-            color: var(--eerie-black-1);
-            transition: color 0.2s ease;
-            position: relative;
-            padding: 8px 0;
-            font-size: 1.55rem;
-            letter-spacing: -0.2px;
-            white-space: nowrap;
-        }
-        
-        body.dark-mode .navbar-link {
-            color: #f1f5f9;
-        }
-        
-        .navbar-link:hover {
-            color: #00BFFF;
-        }
-        
-        .navbar-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2.5px;
-            background: #00BFFF;
-            transition: width 0.25s ease;
-            border-radius: 2px;
-        }
-        
-        .navbar-link:hover::after {
-            width: 100%;
-        }
-        
-        .navbar-link.active {
-            color: #00BFFF;
-        }
-        
-        .navbar-link.active::after {
-            width: 100%;
-        }
-        
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            flex-shrink: 0;
-        }
-        
-        .theme-toggle {
-            background: rgba(0, 0, 0, 0.04);
-            border: none;
-            font-size: 1.8rem;
-            cursor: pointer;
-            color: var(--eerie-black-1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px;
-            transition: all 0.2s ease;
-            border-radius: 50%;
-            width: 42px;
-            height: 42px;
-        }
-        
-        body.dark-mode .theme-toggle {
-            background: rgba(255, 255, 255, 0.08);
-            color: #f1f5f9;
-        }
-        
-        .theme-toggle:hover {
-            transform: scale(1.05);
-            background: rgba(0, 191, 255, 0.12);
-        }
-        
-        .theme-toggle .fa-sun { display: none; }
-        body.dark-mode .theme-toggle .fa-moon { display: none; }
-        body.dark-mode .theme-toggle .fa-sun { display: block; }
-        
-        .portal-buttons-header {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .portal-btn {
-            padding: 9px 22px;
-            border-radius: 40px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.35rem;
-            letter-spacing: -0.2px;
-            backdrop-filter: blur(4px);
-        }
-        
-        .portal-btn-analytics {
-            background: #00BFFF;
-            color: #ffffff;
-            box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
-            border: none;
-        }
-        
-        .portal-btn-analytics:hover {
-            background: #009ac9;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 14px rgba(0, 191, 255, 0.25);
-        }
-        
-        .portal-btn-finance {
-            background: rgba(0, 191, 255, 0.08);
-            color: #00BFFF;
-            border: 1px solid rgba(0, 191, 255, 0.4);
-        }
-        
-        .portal-btn-finance:hover {
-            background: #00BFFF;
-            color: #ffffff;
-            transform: translateY(-2px);
-            border-color: transparent;
-        }
-        
-        .menu-btn {
-            display: none;
-            background: rgba(0, 0, 0, 0.04);
-            border: none;
-            font-size: 2.2rem;
-            cursor: pointer;
-            color: var(--eerie-black-1);
-            align-items: center;
-            justify-content: center;
-            padding: 8px;
-            transition: all 0.2s ease;
-            border-radius: 12px;
-            width: 44px;
-            height: 44px;
-        }
-        
-        body.dark-mode .menu-btn {
-            background: rgba(255, 255, 255, 0.08);
-            color: #f1f5f9;
-        }
-        
-        .menu-btn:hover {
-            background: rgba(0, 191, 255, 0.12);
-        }
-        
-        /* Mobile Drawer */
-        @media (max-width: 991px) {
-            .navbar {
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: min(85%, 360px);
-                height: 100vh;
-                background: rgba(255, 255, 255, 0.96);
-                backdrop-filter: blur(24px);
-                box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
-                z-index: 1001;
-                transition: right 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-                overflow-y: auto;
-                padding: 24px 20px;
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start;
-            }
-            
-            body.dark-mode .navbar {
-                background: rgba(15, 23, 42, 0.96);
-            }
-            
-            .navbar.active {
-                right: 0;
-            }
-            
-            .navbar .wrapper {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding-bottom: 20px;
-                margin-bottom: 24px;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            }
-            
-            .nav-close-btn {
-                background: rgba(0, 0, 0, 0.05);
-                border: none;
-                font-size: 2rem;
-                cursor: pointer;
-                padding: 10px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: var(--eerie-black-1);
-                width: 44px;
-                height: 44px;
-            }
-            
-            .navbar-list {
-                flex-direction: column;
-                gap: 8px;
-                width: 100%;
-            }
-            
-            .navbar-link {
-                display: block;
-                padding: 14px 16px;
-                font-size: 1.6rem;
-                font-weight: 500;
-                border-radius: 14px;
-                transition: all 0.25s ease;
-                color: var(--eerie-black-1);
-            }
-            
-            .navbar-link:hover,
-            .navbar-link.active {
-                background: rgba(0, 191, 255, 0.08);
-                color: #00BFFF;
-                transform: translateX(3px);
-            }
-            
-            .navbar-link::after {
-                display: none;
-            }
-            
-            .mobile-portal-buttons {
-                display: flex;
-                flex-direction: column;
-                gap: 14px;
-                margin-top: 32px;
-                padding-top: 24px;
-                border-top: 1px solid rgba(0, 0, 0, 0.08);
-            }
-            
-            .mobile-portal-btn {
-                padding: 14px 20px;
-                border-radius: 44px;
-                font-weight: 600;
-                font-size: 1.45rem;
-                text-decoration: none;
-                transition: all 0.2s ease;
-                text-align: center;
-            }
-            
-            .mobile-portal-btn-analytics {
-                background: #00BFFF;
-                color: #ffffff;
-                box-shadow: 0 2px 8px rgba(0, 191, 255, 0.2);
-            }
-            
-            .mobile-portal-btn-finance {
-                background: transparent;
-                color: #00BFFF;
-                border: 1.5px solid #00BFFF;
-            }
-            
-            .portal-buttons-header {
-                display: none;
-            }
-            
-            .menu-btn {
-                display: flex;
-            }
-            
-            .header .container {
-                padding: 12px 20px;
-            }
-            
-            .header.active .container {
-                padding: 8px 20px;
-            }
-        }
-        
-        .overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s ease;
-            z-index: 1000;
-        }
-        
-        .overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        
-        body.navbar-open {
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-        }
-        
-        @media (min-width: 992px) {
-            .navbar {
-                position: static;
-                right: auto;
-                width: auto;
-                height: auto;
-                background: none;
-                backdrop-filter: none;
-                box-shadow: none;
-                padding: 0;
-                overflow: visible;
-                display: flex;
-                flex: 1;
-                justify-content: center;
-            }
-            
-            .navbar .wrapper,
-            .nav-close-btn,
-            .mobile-portal-buttons {
-                display: none;
-            }
-            
-            .navbar-list {
-                flex-direction: row;
-                gap: 36px;
-            }
-            
-            .navbar-link {
-                padding: 8px 0;
-                font-size: 1.55rem;
-            }
-            
-            .menu-btn {
-                display: none;
-            }
-            
-            .overlay {
-                display: none;
-            }
-            
-            .portal-buttons-header {
-                display: flex;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .header .container {
-                padding: 10px 16px;
-            }
-            
-            .logo img {
-                height: 34px;
-            }
-            
-            .menu-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 2rem;
-            }
-            
-            .theme-toggle {
-                width: 38px;
-                height: 38px;
-                font-size: 1.6rem;
-            }
-        }
-        
-        /*============================================
-          #HERO SECTION - PRICING HERO
-        ============================================*/
-        .pricing-hero {
-            padding-top: 140px;
-            padding-bottom: 60px;
-            background: #00BFFF;
-            position: relative;
-            overflow: hidden;
-            text-align: center;
-        }
-        
-        body.dark-mode .pricing-hero {
-            background: #0099cc;
-        }
-        
-        /* Bubble Animation */
-        .bubble {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 50%;
-            pointer-events: none;
-            animation: bubbleMove 8s ease-in-out infinite;
-        }
-        
-        @keyframes bubbleMove {
-            0% {
-                transform: translateY(100vh) scale(0);
-                opacity: 0;
-            }
-            20% {
-                opacity: 0.4;
-            }
-            80% {
-                opacity: 0.2;
-            }
-            100% {
-                transform: translateY(-20vh) scale(1);
-                opacity: 0;
-            }
-        }
-        
-        .bubble:nth-child(1) { width: 30px; height: 30px; left: 5%; animation-duration: 6s; animation-delay: 0s; }
-        .bubble:nth-child(2) { width: 50px; height: 50px; left: 15%; animation-duration: 8s; animation-delay: 1s; }
-        .bubble:nth-child(3) { width: 20px; height: 20px; left: 25%; animation-duration: 5s; animation-delay: 2s; }
-        .bubble:nth-child(4) { width: 70px; height: 70px; left: 35%; animation-duration: 10s; animation-delay: 0.5s; }
-        .bubble:nth-child(5) { width: 40px; height: 40px; left: 45%; animation-duration: 7s; animation-delay: 3s; }
-        .bubble:nth-child(6) { width: 25px; height: 25px; left: 55%; animation-duration: 5.5s; animation-delay: 1.5s; }
-        .bubble:nth-child(7) { width: 60px; height: 60px; left: 65%; animation-duration: 9s; animation-delay: 2.5s; }
-        .bubble:nth-child(8) { width: 35px; height: 35px; left: 75%; animation-duration: 6.5s; animation-delay: 4s; }
-        .bubble:nth-child(9) { width: 45px; height: 45px; left: 85%; animation-duration: 7.5s; animation-delay: 1s; }
-        .bubble:nth-child(10) { width: 55px; height: 55px; left: 95%; animation-duration: 8.5s; animation-delay: 3.5s; }
-        .bubble:nth-child(11) { width: 15px; height: 15px; left: 8%; animation-duration: 4s; animation-delay: 5s; }
-        .bubble:nth-child(12) { width: 80px; height: 80px; left: 42%; animation-duration: 12s; animation-delay: 1s; }
-        
-        /* Pricing Hero Badge */
-        .pricing-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 8px 20px;
-            border-radius: 50px;
-            font-size: 1.3rem;
-            font-weight: 500;
-            color: #ffffff;
-            margin-bottom: 25px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .pricing-badge i {
-            font-size: 1.2rem;
-        }
-        
-        body.dark-mode .pricing-badge {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        
-        .pricing-hero h1 {
-            font-size: 4rem;
-            color: #ffffff;
-            margin-bottom: 15px;
-            white-space: nowrap;
-        }
-        
-        .pricing-hero h1 span {
-            color: #FFD700;
-        }
-        
-        .pricing-hero p {
-            font-size: 1.6rem;
-            color: rgba(255, 255, 255, 0.9);
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        
-        body.dark-mode .pricing-hero p {
-            color: rgba(255, 255, 255, 0.85);
-        }
-        
-        @media (max-width: 992px) {
-            .pricing-hero h1 { font-size: 3.2rem; white-space: nowrap; }
-        }
-        
-        @media (max-width: 768px) {
-            .pricing-hero { padding-top: 120px; }
-            .pricing-hero h1 { font-size: 2.5rem; white-space: nowrap; }
-        }
-        
-        @media (max-width: 576px) {
-            .pricing-hero h1 { font-size: 2rem; white-space: normal; line-height: 1.3; }
-        }
-        
-/*============================================
-  #PRICING CARDS SECTION - MODERN STYLED
-============================================*/
-.pricing-cards-section {
+/*-----------------------------------*\
+  #UNIFORM SYSTEM STYLES
+\*-----------------------------------*/
+body {
+    background: linear-gradient(135deg, #fffdf5 0%, #fffaf0 50%, #fff5eb 100%);
+    /* Fallback - soft cream */
+    background-color: #fffdf5;
+    font-family: "Merriweather", serif;
+    color: #000;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+body, button, input, textarea, select, p, li, a, span {
+    font-family: "Merriweather", serif;
+}
+
+h1, h2, h3, h4, .section-title {
+    font-family: 'League Spartan', "Merriweather", serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    text-transform: capitalize;
+}
+
+/*-----------------------------------*\
+  #CUSTOM PROPERTY
+\*-----------------------------------*/
+:root {
+    --kappel: hsl(170, 75%, 41%);
+    --selective-yellow: hsl(42, 94%, 55%);
+    --eerie-black-1: hsl(0, 0%, 9%);
+    --eerie-black-2: hsl(180, 3%, 7%);
+    --quick-silver: hsl(0, 0%, 65%);
+    --radical-red: hsl(351, 83%, 61%);
+    --light-gray: hsl(0, 0%, 80%);
+    --isabelline: hsl(36, 33%, 94%);
+    --gray-x-11: hsl(0, 0%, 73%);
+    --platinum: hsl(0, 0%, 90%);
+    --gray-web: hsl(0, 0%, 50%);
+    --white: hsl(0, 0%, 100%);
+    
+    --ff-league_spartan: 'League Spartan', sans-serif;
+    --ff-poppins: 'Poppins', sans-serif;
+    
+    --fs-1: 4.2rem;
+    --fs-2: 3.2rem;
+    --fs-3: 2.3rem;
+    --fs-4: 1.8rem;
+    --fs-5: 1.5rem;
+    --fs-6: 1.4rem;
+    --fs-7: 1.3rem;
+    
+    --fw-500: 500;
+    --fw-600: 600;
+    
+    --section-padding: 75px;
+    
+    --shadow-1: 0 6px 15px 0 hsla(0, 0%, 0%, 0.05);
+    --shadow-2: 0 10px 30px hsla(0, 0%, 0%, 0.06);
+    --shadow-3: 0 10px 50px 0 hsla(220, 53%, 22%, 0.1);
+    
+    --radius-pill: 500px;
+    --radius-circle: 50%;
+    --radius-3: 3px;
+    --radius-5: 5px;
+    --radius-10: 10px;
+    --radius-15: 15px;
+    
+    --transition-1: 0.25s ease;
+    --transition-2: 0.5s ease;
+}
+
+/* Dark Mode */
+body.dark-mode {
+    --eerie-black-1: hsl(0, 0%, 90%);
+    --eerie-black-2: hsl(0, 0%, 95%);
+    --gray-web: hsl(0, 0%, 70%);
+    --light-gray: hsl(0, 0%, 30%);
+    --isabelline: hsl(36, 20%, 15%);
+    --platinum: hsl(0, 0%, 25%);
+    --white: hsl(0, 0%, 15%);
+    background: linear-gradient(170deg, #3a3a2a 35%, #2a2a28 100%);
+}
+
+body.dark-mode .footer {
+    background-color: #0a0e17;
+}
+
+body.dark-mode .header {
     background-color: var(--white);
-    padding-bottom: 80px;
+}
+
+body.dark-mode .navbar-link {
+    color: var(--eerie-black-1);
+}
+
+/*-----------------------------------*\
+  #RESET
+\*-----------------------------------*/
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+li { list-style: none; }
+
+a, img, span, data, input, button, textarea, ion-icon { display: block; }
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+img { height: auto; }
+
+input, button, textarea {
+    background: none;
+    border: none;
+    font: inherit;
+}
+
+input, textarea { width: 100%; }
+
+button { cursor: pointer; }
+
+ion-icon { pointer-events: none; }
+
+address { font-style: normal; }
+
+html {
+    font-family: var(--ff-poppins);
+    font-size: 10px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-size: 1.6rem;
+    line-height: 1.75;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background-color: hsl(0, 0%, 98%); }
+::-webkit-scrollbar-thumb { background-color: hsl(0, 0%, 80%); }
+
+/*-----------------------------------*\
+  #REUSED STYLE
+\*-----------------------------------*/
+.container { 
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-inline: 15px;
+}
+
+.section { 
+    padding-block: var(--section-padding); 
+}
+
+.h1, .h2, .h3 {
+    color: var(--eerie-black-1);
+    font-family: var(--ff-league_spartan);
+    line-height: 1.2;
+}
+
+.h1, .h2 { font-weight: var(--fw-600); }
+.h1 { font-size: var(--fs-1); }
+.h2 { font-size: var(--fs-2); }
+
+.section-title {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.section-title .span {
+    display: inline-block;
+    color: #00BFFF;
+}
+
+.section-subtitle {
+    font-size: var(--fs-5);
+    text-transform: uppercase;
+    font-weight: var(--fw-500);
+    letter-spacing: 1px;
+    text-align: center;
+    margin-block-end: 15px;
+    color: #00BFFF;
+}
+
+.btn {
+    background-color: #00BFFF;
+    color: white;
+    font-family: var(--ff-league_spartan);
+    font-size: var(--fs-4);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: max-content;
+    padding: 12px 28px;
+    border-radius: 60px;
+    text-decoration: none;
+    transition: var(--transition-1);
+    font-weight: 600;
+}
+
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 191, 255, 0.3);
+    background-color: #009ac9;
+}
+
+/*-----------------------------------*\
+  #HEADER
+\*-----------------------------------*/
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 253, 245, 0.85);
+    backdrop-filter: blur(16px);
+    z-index: 1000;
+    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.header.active {
+    background: rgba(255, 253, 245, 0.92);
+    backdrop-filter: blur(20px);
+    padding-block: 0;
+}
+
+body.dark-mode .header {
+    background: rgba(25, 30, 35, 0.85);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 14px 32px;
+    transition: padding 0.25s ease;
+}
+
+.header.active .container {
+    padding: 8px 32px;
+}
+
+.logo {
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.logo img {
+    width: auto;
+    height: 44px;
+    max-width: 150px;
+    object-fit: contain;
+    transition: height 0.25s ease;
+}
+
+.header.active .logo img {
+    height: 38px;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+}
+
+.navbar-list {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.navbar-link {
+    font-weight: 500;
+    color: var(--eerie-black-1);
+    transition: color 0.2s ease;
+    position: relative;
+    padding: 8px 0;
+    font-size: 1.55rem;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+}
+
+body.dark-mode .navbar-link {
+    color: #f1f5f9;
+}
+
+.navbar-link:hover, .navbar-link.active {
+    color: #00BFFF;
+}
+
+.navbar-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2.5px;
+    background: #00BFFF;
+    transition: width 0.25s ease;
+    border-radius: 2px;
+}
+
+.navbar-link.active::after, .navbar-link:hover::after {
+    width: 100%;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-shrink: 0;
+}
+
+.theme-toggle {
+    background: rgba(0, 0, 0, 0.04);
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--eerie-black-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.05);
+    background: rgba(0, 191, 255, 0.12);
+}
+
+.theme-toggle .fa-sun { display: none; }
+body.dark-mode .theme-toggle .fa-moon { display: none; }
+body.dark-mode .theme-toggle .fa-sun { display: block; }
+
+.portal-buttons-header {
+    display: flex;
+    gap: 12px;
+}
+
+.portal-btn {
+    padding: 9px 22px;
+    border-radius: 40px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.35rem;
+    backdrop-filter: blur(4px);
+}
+
+.portal-btn-analytics {
+    background: #00BFFF;
+    color: #ffffff;
+}
+
+.portal-btn-analytics:hover {
+    background: #009ac9;
+    transform: translateY(-2px);
+}
+
+.portal-btn-finance {
+    background: rgba(0, 191, 255, 0.08);
+    color: #00BFFF;
+    border: 1px solid rgba(0, 191, 255, 0.4);
+}
+
+.portal-btn-finance:hover {
+    background: #00BFFF;
+    color: #ffffff;
+}
+
+.menu-btn {
+    display: none;
+    background: rgba(0, 0, 0, 0.04);
+    border: none;
+    font-size: 2.2rem;
+    cursor: pointer;
+    color: var(--eerie-black-1);
+    padding: 8px;
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+}
+
+/* Mobile Drawer */
+@media (max-width: 991px) {
+    .navbar {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: min(85%, 360px);
+        height: 100vh;
+        background: rgba(255, 253, 245, 0.96);
+        backdrop-filter: blur(24px);
+        z-index: 1001;
+        transition: right 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        overflow-y: auto;
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .navbar.active { right: 0; }
+    
+    .navbar .wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 20px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .nav-close-btn {
+        background: rgba(0, 0, 0, 0.05);
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+    }
+    
+    .navbar-list {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+    
+    .navbar-link {
+        display: block;
+        padding: 14px 16px;
+        font-size: 1.6rem;
+        border-radius: 14px;
+    }
+    
+    .navbar-link:hover, .navbar-link.active {
+        background: rgba(0, 191, 255, 0.08);
+        color: #00BFFF;
+        transform: translateX(3px);
+    }
+    
+    .navbar-link::after { display: none; }
+    
+    .mobile-portal-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .mobile-portal-btn {
+        padding: 14px 20px;
+        border-radius: 44px;
+        font-weight: 600;
+        font-size: 1.45rem;
+        text-align: center;
+    }
+    
+    .mobile-portal-btn-analytics {
+        background: #00BFFF;
+        color: #ffffff;
+    }
+    
+    .mobile-portal-btn-finance {
+        background: transparent;
+        color: #00BFFF;
+        border: 1.5px solid #00BFFF;
+    }
+    
+    .portal-buttons-header { display: none; }
+    .menu-btn { display: flex; }
+    .header .container { padding: 12px 20px; }
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 1000;
+}
+
+.overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+@media (min-width: 992px) {
+    .navbar {
+        position: static;
+        right: auto;
+        width: auto;
+        height: auto;
+        background: none;
+        backdrop-filter: none;
+        padding: 0;
+        overflow: visible;
+    }
+    .navbar .wrapper, .nav-close-btn, .mobile-portal-buttons { display: none; }
+    .navbar-list { flex-direction: row; gap: 36px; }
+    .menu-btn { display: none; }
+    .overlay { display: none; }
+    .portal-buttons-header { display: flex; }
+}
+
+/*-----------------------------------*\
+  #PRICING HERO
+\*-----------------------------------*/
+.pricing-hero {
+    padding-top: 140px;
+    padding-bottom: 60px;
+    background: linear-gradient(135deg, #e8a84c, #c97e2a);
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+body.dark-mode .pricing-hero {
+    background: linear-gradient(135deg, #c48a3c, #a66824);
+}
+
+.bubble {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: bubbleMove 8s ease-in-out infinite;
+}
+
+@keyframes bubbleMove {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    20% { opacity: 0.4; }
+    80% { opacity: 0.2; }
+    100% { transform: translateY(-20vh) scale(1); opacity: 0; }
+}
+
+.bubble:nth-child(1) { width: 30px; height: 30px; left: 5%; animation-duration: 6s; }
+.bubble:nth-child(2) { width: 50px; height: 50px; left: 15%; animation-duration: 8s; animation-delay: 1s; }
+.bubble:nth-child(3) { width: 20px; height: 20px; left: 25%; animation-duration: 5s; animation-delay: 2s; }
+.bubble:nth-child(4) { width: 70px; height: 70px; left: 35%; animation-duration: 10s; animation-delay: 0.5s; }
+.bubble:nth-child(5) { width: 40px; height: 40px; left: 45%; animation-duration: 7s; animation-delay: 3s; }
+.bubble:nth-child(6) { width: 25px; height: 25px; left: 55%; animation-duration: 5.5s; animation-delay: 1.5s; }
+.bubble:nth-child(7) { width: 60px; height: 60px; left: 65%; animation-duration: 9s; animation-delay: 2.5s; }
+.bubble:nth-child(8) { width: 35px; height: 35px; left: 75%; animation-duration: 6.5s; animation-delay: 4s; }
+.bubble:nth-child(9) { width: 45px; height: 45px; left: 85%; animation-duration: 7.5s; animation-delay: 1s; }
+.bubble:nth-child(10) { width: 55px; height: 55px; left: 95%; animation-duration: 8.5s; animation-delay: 3.5s; }
+.bubble:nth-child(11) { width: 15px; height: 15px; left: 8%; animation-duration: 4s; animation-delay: 5s; }
+.bubble:nth-child(12) { width: 80px; height: 80px; left: 42%; animation-duration: 12s; animation-delay: 1s; }
+
+.pricing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 25px;
+    backdrop-filter: blur(10px);
+}
+
+.pricing-hero h1 {
+    font-size: clamp(2rem, 6vw, 4rem);
+    color: #ffffff;
+    margin-bottom: 15px;
+}
+
+.pricing-hero h1 span {
+    color: #2c2418;
+}
+
+.pricing-hero p {
+    font-size: 1.6rem;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/*-----------------------------------*\
+  #PRICING CARDS
+\*-----------------------------------*/
+.pricing-cards-section {
+    padding: 70px 0;
 }
 
 .school-type {
@@ -834,14 +722,14 @@ $pricing_data = [
     gap: 15px;
     margin-bottom: 30px;
     padding-bottom: 15px;
-    border-bottom: 2px solid var(--platinum);
+    border-bottom: 2px solid rgba(230, 200, 140, 0.5);
 }
 
 .school-icon {
     width: 50px;
     height: 50px;
     background: rgba(0, 191, 255, 0.1);
-    border-radius: var(--radius-circle);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -852,15 +740,12 @@ $pricing_data = [
 .school-title {
     font-size: 2rem;
     color: var(--eerie-black-1);
-    font-family: var(--ff-league_spartan);
 }
 
-/* School Type Tabs */
 .school-type-tabs {
     display: flex;
     gap: 15px;
     margin-bottom: 30px;
-    border-bottom: 2px solid var(--platinum);
     padding-bottom: 10px;
 }
 
@@ -871,9 +756,9 @@ $pricing_data = [
     transition: all 0.3s ease;
     font-weight: 600;
     font-size: 1.4rem;
-    background: var(--white);
-    border: 1px solid var(--platinum);
-    color: var(--gray-web);
+    background: rgba(255, 253, 248, 0.85);
+    border: 1px solid rgba(230, 200, 140, 0.5);
+    color: #5c4b34;
 }
 
 .school-tab.active {
@@ -882,80 +767,50 @@ $pricing_data = [
     border-color: #00BFFF;
 }
 
-.school-tab.public.active {
-    background: #00BFFF;
+body.dark-mode .school-tab {
+    background: rgba(50, 45, 38, 0.85);
+    color: #cfc3a8;
 }
 
-.school-tab.private.active {
-    background: #8B5CF6;
-}
-
-/* Pricing Cards Grid */
 .pricing-card-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 30px;
 }
 
-/* Modern Pricing Card */
 .pricing-card {
-    border-radius: var(--radius-15);
+    border-radius: 24px;
     overflow: hidden;
-    transition: all 0.3s ease;
-    border: 1px solid var(--platinum);
+    transition: all 0.35s ease;
+    border: 1px solid rgba(230, 200, 140, 0.4);
     position: relative;
-    box-shadow: var(--shadow-1);
+    background: rgba(255, 253, 248, 0.85);
+    backdrop-filter: blur(2px);
 }
 
-/* Card Background Colors - Faded versions */
-.fee-package {
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.08) 0%, rgba(0, 191, 255, 0.02) 100%);
-    border-top: 3px solid #00BFFF;
-}
-
-.fee-package:hover {
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.12) 0%, rgba(0, 191, 255, 0.04) 100%);
+.pricing-card:hover {
     transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    background: rgba(255, 254, 252, 0.95);
+    border-color: #e6b450;
 }
 
-.analytics-package {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%);
-    border-top: 3px solid #10B981;
-}
+.fee-package { border-top: 3px solid #00BFFF; }
+.analytics-package { border-top: 3px solid #10B981; }
+.complete-package { border-top: 3px solid #8B5CF6; }
 
-.analytics-package:hover {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
+.fee-package .main-price { color: #00BFFF; }
+.analytics-package .main-price { color: #10B981; }
+.complete-package .main-price { color: #8B5CF6; }
 
-.complete-package {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 100%);
-    border-top: 3px solid #8B5CF6;
-}
+.fee-package .price-btn { background: #00BFFF; }
+.analytics-package .price-btn { background: #10B981; }
+.complete-package .price-btn { background: #8B5CF6; }
 
-.complete-package:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 100%);
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
+.fee-package .ribbon span { background: #00BFFF; }
+.analytics-package .ribbon span { background: #10B981; }
+.complete-package .ribbon span { background: #8B5CF6; }
 
-/* Dark mode backgrounds */
-body.dark-mode .fee-package {
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.15) 0%, rgba(0, 191, 255, 0.05) 100%);
-}
-
-body.dark-mode .analytics-package {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
-}
-
-body.dark-mode .complete-package {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%);
-}
-
-/* Ribbon/Recommended Badge */
-.pricing-card .ribbon {
+.ribbon {
     width: 150px;
     height: 150px;
     position: absolute;
@@ -965,28 +820,7 @@ body.dark-mode .complete-package {
     z-index: 1;
 }
 
-.pricing-card .ribbon::before,
-.pricing-card .ribbon::after {
-    position: absolute;
-    content: "";
-    z-index: -1;
-    display: block;
-    border: 7px solid #0056b3;
-    border-top-color: transparent;
-    border-left-color: transparent;
-}
-
-.pricing-card .ribbon::before {
-    top: 0px;
-    right: 15px;
-}
-
-.pricing-card .ribbon::after {
-    bottom: 15px;
-    left: 0px;
-}
-
-.pricing-card .ribbon span {
+.ribbon span {
     position: absolute;
     top: 30px;
     right: 0;
@@ -999,18 +833,12 @@ body.dark-mode .complete-package {
     font-size: 14px;
     font-weight: 600;
     text-transform: uppercase;
-    box-shadow: 0 5px 10px rgba(0,0,0,0.12);
 }
 
-/* Price Display - Text Style */
 .card-price {
     text-align: center;
     padding: 25px 20px 15px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-body.dark-mode .card-price {
-    border-bottom-color: rgba(255, 255, 255, 0.05);
 }
 
 .main-price {
@@ -1027,22 +855,17 @@ body.dark-mode .card-price {
 .per-student-price {
     font-size: 1.4rem;
     margin-top: 8px;
-    color: var(--gray-web);
+    color: #5c4b34;
 }
 
 .onboarding-fee {
     text-align: center;
     font-size: 1.2rem;
-    color: var(--gray-web);
+    color: #5c4b34;
     padding: 10px 20px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-body.dark-mode .onboarding-fee {
-    border-bottom-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Package Name */
 .package-name {
     text-align: center;
     padding: 15px 20px 0;
@@ -1052,14 +875,14 @@ body.dark-mode .onboarding-fee {
     font-size: 1.8rem;
     font-weight: 600;
     margin-bottom: 5px;
+    color: #2c2418;
 }
 
 .package-name p {
     font-size: 1.2rem;
-    color: var(--gray-web);
+    color: #5c4b34;
 }
 
-/* School Type Badge */
 .school-type-badge {
     display: inline-block;
     padding: 4px 12px;
@@ -1079,22 +902,13 @@ body.dark-mode .onboarding-fee {
     color: #8B5CF6;
 }
 
-/* Button */
-.btn {
-    width: 100%;
-    display: flex;
-    margin: 20px 0 25px;
-    justify-content: center;
-}
-
 .price-btn {
     width: 80%;
+    margin: 20px auto 25px;
     height: 45px;
     color: #fff;
     font-size: 1.5rem;
     font-weight: 600;
-    border: none;
-    outline: none;
     border-radius: 25px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1111,35 +925,125 @@ body.dark-mode .onboarding-fee {
     gap: 12px;
 }
 
-/* Card specific colors */
-.fee-package .main-price { color: #00BFFF; }
-.analytics-package .main-price { color: #10B981; }
-.complete-package .main-price { color: #8B5CF6; }
-
-.fee-package .price-btn { background: #00BFFF; }
-.analytics-package .price-btn { background: #10B981; }
-.complete-package .price-btn { background: #8B5CF6; }
-
-.fee-package .price-btn:hover { background: #009ac9; }
-.analytics-package .price-btn:hover { background: #0d9668; }
-.complete-package .price-btn:hover { background: #7c3aed; }
-
-.fee-package .ribbon span { background: #00BFFF; }
-.analytics-package .ribbon span { background: #10B981; }
-.complete-package .ribbon span { background: #8B5CF6; }
-
-/* Note section */
 .note {
     text-align: center;
     margin-top: 50px;
     padding: 20px;
-    background: var(--isabelline);
-    border-radius: var(--radius-10);
+    background: rgba(255, 253, 248, 0.7);
+    border-radius: 24px;
 }
 
 .note p {
     font-size: 1.3rem;
-    color: var(--gray-web);
+    color: #5c4b34;
+}
+
+body.dark-mode .pricing-card {
+    background: rgba(50, 45, 38, 0.85);
+    border-color: rgba(210, 170, 90, 0.3);
+}
+
+body.dark-mode .pricing-card:hover {
+    background: rgba(65, 58, 48, 0.92);
+}
+
+body.dark-mode .package-name h3 {
+    color: #f7e5c2;
+}
+
+body.dark-mode .per-student-price,
+body.dark-mode .onboarding-fee,
+body.dark-mode .package-name p {
+    color: #cfc3a8;
+}
+
+body.dark-mode .note {
+    background: rgba(30, 28, 22, 0.7);
+}
+
+body.dark-mode .note p {
+    color: #cfc3a8;
+}
+
+/*-----------------------------------*\
+  #FOOTER
+\*-----------------------------------*/
+.footer {
+    background-color: #2c2418;
+    color: #cfc3a8;
+    padding-block-start: 60px;
+    margin-top: 40px;
+    border-radius: 30px 30px 0 0;
+}
+
+.footer-top {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    padding-block-end: 40px;
+}
+
+.footer-list-title {
+    color: #f7e5c2;
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-block-end: 12px;
+}
+
+.footer-link {
+    transition: var(--transition-1);
+    display: block;
+    padding-block: 4px;
+    font-size: 1.3rem;
+    color: #cfc3a8;
+}
+
+.footer-link:hover {
+    color: #e9b35f;
+}
+
+.copyright {
+    text-align: center;
+    padding-block: 25px;
+    border-block-start: 1px solid rgba(207, 195, 168, 0.2);
+    font-size: 1.25rem;
+}
+
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.7s ease;
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.back-top-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: #e9b35f;
+    color: #2c2418;
+    font-size: 1.6rem;
+    padding: 12px;
+    border-radius: 50%;
+    z-index: 3;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition-1);
+    cursor: pointer;
+}
+
+.back-top-btn.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.back-top-btn:hover {
+    background-color: #d4943c;
+    transform: translateY(-3px);
 }
 
 @media (max-width: 991px) {
@@ -1147,100 +1051,27 @@ body.dark-mode .onboarding-fee {
         grid-template-columns: 1fr;
         gap: 25px;
     }
-    
     .school-type-tabs {
         justify-content: center;
+    }
+    .footer-top {
+        grid-template-columns: 1fr;
+        gap: 25px;
     }
 }
 
 @media (max-width: 768px) {
-    .pricing-card {
-        max-width: 100%;
+    .pricing-hero {
+        padding-top: 120px;
+    }
+    .school-header {
+        justify-content: center;
     }
 }
-        
-        /* Footer */
-        .footer {
-            background-color: var(--eerie-black-2);
-            color: var(--gray-x-11);
-            padding-block-start: 50px;
-        }
-        
-        .footer-top {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
-            padding-block-end: 35px;
-        }
-        
-        .footer-list-title {
-            color: var(--white);
-            font-family: var(--ff-league_spartan);
-            font-size: 1.6rem;
-            font-weight: 600;
-            margin-block-end: 12px;
-        }
-        
-        .footer-link {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            padding-block: 4px;
-            font-size: 1.3rem;
-        }
-        
-        .footer-link:hover {
-            color: var(--kappel);
-        }
-        
-        .copyright {
-            text-align: center;
-            padding-block: 25px;
-            border-block-start: 1px solid var(--eerie-black-1);
-            font-size: 1.25rem;
-        }
-        
-        .reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.7s ease;
-        }
-        
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .back-top-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background-color: var(--kappel);
-            color: var(--white);
-            font-size: 1.6rem;
-            padding: 12px;
-            border-radius: var(--radius-circle);
-            z-index: 3;
-            opacity: 0;
-            pointer-events: none;
-            transition: var(--transition-1);
-        }
-        
-        .back-top-btn.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        
-        main {
-            min-height: 400px;
-        }
-        
-        @media (max-width: 768px) {
-            .footer-top {
-                grid-template-columns: 1fr;
-                gap: 25px;
-            }
-        }
+
+main {
+    min-height: 400px;
+}
     </style>
 </head>
 <body>
@@ -1295,22 +1126,10 @@ body.dark-mode .onboarding-fee {
 <main>
     <!-- Pricing Hero Section -->
     <section class="pricing-hero">
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        <div class="bubble"></div>
-        
+        <?php for($i = 1; $i <= 12; $i++) echo '<div class="bubble"></div>'; ?>
         <div class="container">
             <div class="pricing-badge">
-                <i class="fas fa-leaf"></i> Customized pricing according to total student enrollment
+                <i class="fas fa-tag"></i> Customized pricing according to total student enrollment
             </div>
             <h1>Simple, flexible pricing <span>built for schools</span></h1>
             <p>Find a package that matches your school's size and operational needs. Each plan comes with smart digital tools to help manage academics, reports, communication, and administration more efficiently.</p>
@@ -1318,374 +1137,323 @@ body.dark-mode .onboarding-fee {
     </section>
 
     <!-- Pricing Cards Section -->
-<section class="pricing-cards-section section">
-    <div class="container">
-        
-        <!-- Primary School -->
-        <div class="school-type reveal">
-            <div class="school-header">
-                <div class="school-icon">
-                    <i class="fas fa-school"></i>
+    <section class="pricing-cards-section">
+        <div class="container">
+            
+            <!-- Primary School -->
+            <div class="school-type reveal">
+                <div class="school-header">
+                    <div class="school-icon"><i class="fas fa-school"></i></div>
+                    <h2 class="school-title">Primary School</h2>
                 </div>
-                <h2 class="school-title">Primary School</h2>
+                
+                <div class="school-type-tabs">
+                    <button class="school-tab public active" data-school="primary" data-type="public">Public School</button>
+                    <button class="school-tab private" data-school="primary" data-type="private">Private School</button>
+                </div>
+                
+                <div class="pricing-card-grid public-grid" id="primary-public">
+                    <div class="pricing-card fee-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['primary']['public']['fee_system']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['public']['fee_system']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Fee Management System</h3>
+                            <p>Complete financial management</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card analytics-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['primary']['public']['analytics']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['public']['analytics']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Analytics System</h3>
+                            <p>Data-driven insights</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card complete-package">
+                        <div class="ribbon"><span>Recommended</span></div>
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['primary']['public']['both_modules']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['public']['both_modules']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Complete Package</h3>
+                            <p>Everything you need</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                
+                <div class="pricing-card-grid private-grid" id="primary-private" style="display: none;">
+                    <div class="pricing-card fee-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['primary']['private']['fee_system']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['private']['fee_system']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Fee Management System</h3>
+                            <p>Complete financial management</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card analytics-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['primary']['private']['analytics']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['private']['analytics']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Analytics System</h3>
+                            <p>Data-driven insights</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card complete-package">
+                        <div class="ribbon"><span>Recommended</span></div>
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['primary']['private']['both_modules']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['private']['both_modules']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Complete Package</h3>
+                            <p>Everything you need</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
             </div>
             
-            <!-- School Type Tabs -->
-            <div class="school-type-tabs">
-                <button class="school-tab public active" data-school="primary" data-type="public">Public School</button>
-                <button class="school-tab private" data-school="primary" data-type="private">Private School</button>
+            <!-- Junior Secondary School -->
+            <div class="school-type reveal">
+                <div class="school-header">
+                    <div class="school-icon"><i class="fas fa-chalkboard-user"></i></div>
+                    <h2 class="school-title">Junior Secondary School</h2>
+                </div>
+                
+                <div class="school-type-tabs">
+                    <button class="school-tab public active" data-school="junior" data-type="public">Public School</button>
+                    <button class="school-tab private" data-school="junior" data-type="private">Private School</button>
+                </div>
+                
+                <div class="pricing-card-grid public-grid" id="junior-public">
+                    <div class="pricing-card fee-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['junior']['public']['fee_system']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['public']['fee_system']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Fee Management System</h3>
+                            <p>Complete financial management</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card analytics-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['junior']['public']['analytics']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['public']['analytics']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Analytics System</h3>
+                            <p>Data-driven insights</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card complete-package">
+                        <div class="ribbon"><span>Recommended</span></div>
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['junior']['public']['both_modules']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['public']['both_modules']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Complete Package</h3>
+                            <p>Everything you need</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                
+                <div class="pricing-card-grid private-grid" id="junior-private" style="display: none;">
+                    <div class="pricing-card fee-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['junior']['private']['fee_system']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['private']['fee_system']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Fee Management System</h3>
+                            <p>Complete financial management</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card analytics-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['junior']['private']['analytics']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['private']['analytics']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Analytics System</h3>
+                            <p>Data-driven insights</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    
+                    <div class="pricing-card complete-package">
+                        <div class="ribbon"><span>Recommended</span></div>
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['junior']['private']['both_modules']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['private']['both_modules']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Complete Package</h3>
+                            <p>Everything you need</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
             </div>
             
-            <!-- Public School Pricing -->
-            <div class="pricing-card-grid public-grid" id="primary-public">
-                <!-- Fee Management System -->
-                <div class="pricing-card fee-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['primary']['public']['fee_system']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['public']['fee_system']['per_student']; ?>/student/term</div>
+            <!-- Senior Secondary School -->
+            <div class="school-type reveal">
+                <div class="school-header">
+                    <div class="school-icon"><i class="fas fa-graduation-cap"></i></div>
+                    <h2 class="school-title">Senior Secondary School</h2>
+                </div>
+                
+                <div class="school-type-tabs">
+                    <button class="school-tab public active" data-school="senior" data-type="public">Public School</button>
+                    <button class="school-tab private" data-school="senior" data-type="private">Private School</button>
+                </div>
+                
+                <div class="pricing-card-grid public-grid" id="senior-public">
+                    <div class="pricing-card fee-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['senior']['public']['fee_system']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['public']['fee_system']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Fee Management System</h3>
+                            <p>Complete financial management</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
                     </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Fee Management System</h3>
-                        <p>Complete financial management</p>
-                        <span class="school-type-badge public">Public School</span>
+                    
+                    <div class="pricing-card analytics-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['senior']['public']['analytics']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['public']['analytics']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Analytics System</h3>
+                            <p>Data-driven insights</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
                     </div>
-                    <div class="btn">
+                    
+                    <div class="pricing-card complete-package">
+                        <div class="ribbon"><span>Recommended</span></div>
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['senior']['public']['both_modules']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['public']['both_modules']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Complete Package</h3>
+                            <p>Everything you need</p>
+                            <span class="school-type-badge public">Public School</span>
+                        </div>
                         <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
                     </div>
                 </div>
                 
-                <!-- Analytics System -->
-                <div class="pricing-card analytics-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['primary']['public']['analytics']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['public']['analytics']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Analytics System</h3>
-                        <p>Data-driven insights</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
+                <div class="pricing-card-grid private-grid" id="senior-private" style="display: none;">
+                    <div class="pricing-card fee-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['senior']['private']['fee_system']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['private']['fee_system']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Fee Management System</h3>
+                            <p>Complete financial management</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
                         <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
                     </div>
-                </div>
-                
-                <!-- Complete Package -->
-                <div class="pricing-card complete-package reveal">
-                    <div class="ribbon"><span>Recommended</span></div>
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['primary']['public']['both_modules']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['public']['both_modules']['per_student']; ?>/student/term</div>
+                    
+                    <div class="pricing-card analytics-package">
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['senior']['private']['analytics']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['private']['analytics']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Analytics System</h3>
+                            <p>Data-driven insights</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
+                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
                     </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Complete Package</h3>
-                        <p>Everything you need</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
+                    
+                    <div class="pricing-card complete-package">
+                        <div class="ribbon"><span>Recommended</span></div>
+                        <div class="card-price">
+                            <div class="main-price">KES <?php echo number_format($pricing_data['senior']['private']['both_modules']['onboarding']); ?><small> one-time</small></div>
+                            <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['private']['both_modules']['per_student']; ?>/student/term</div>
+                        </div>
+                        <div class="onboarding-fee">One-time onboarding fee included</div>
+                        <div class="package-name">
+                            <h3>Complete Package</h3>
+                            <p>Everything you need</p>
+                            <span class="school-type-badge private">Private School</span>
+                        </div>
                         <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
                     </div>
                 </div>
             </div>
             
-            <!-- Private School Pricing (Hidden by default) -->
-            <div class="pricing-card-grid private-grid" id="primary-private" style="display: none;">
-                <!-- Fee Management System -->
-                <div class="pricing-card fee-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['primary']['private']['fee_system']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['private']['fee_system']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Fee Management System</h3>
-                        <p>Complete financial management</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <!-- Analytics System -->
-                <div class="pricing-card analytics-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['primary']['private']['analytics']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['private']['analytics']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Analytics System</h3>
-                        <p>Data-driven insights</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <!-- Complete Package -->
-                <div class="pricing-card complete-package reveal">
-                    <div class="ribbon"><span>Recommended</span></div>
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['primary']['private']['both_modules']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['primary']['private']['both_modules']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Complete Package</h3>
-                        <p>Everything you need</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
+            <div class="note reveal">
+                <p><i class="fas fa-info-circle"></i> All prices are in Kenyan Shillings (KES). Onboarding fee is a one-time payment. Per-student fee is charged termly based on the number of active students in the system. Private school pricing includes premium features and priority support.</p>
             </div>
         </div>
-        
-        <!-- Junior Secondary School -->
-        <div class="school-type reveal">
-            <div class="school-header">
-                <div class="school-icon">
-                    <i class="fas fa-chalkboard-user"></i>
-                </div>
-                <h2 class="school-title">Junior Secondary School</h2>
-            </div>
-            
-            <div class="school-type-tabs">
-                <button class="school-tab public active" data-school="junior" data-type="public">Public School</button>
-                <button class="school-tab private" data-school="junior" data-type="private">Private School</button>
-            </div>
-            
-            <div class="pricing-card-grid public-grid" id="junior-public">
-                <div class="pricing-card fee-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['junior']['public']['fee_system']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['public']['fee_system']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Fee Management System</h3>
-                        <p>Complete financial management</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card analytics-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['junior']['public']['analytics']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['public']['analytics']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Analytics System</h3>
-                        <p>Data-driven insights</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card complete-package reveal">
-                    <div class="ribbon"><span>Recommended</span></div>
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['junior']['public']['both_modules']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['public']['both_modules']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Complete Package</h3>
-                        <p>Everything you need</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pricing-card-grid private-grid" id="junior-private" style="display: none;">
-                <div class="pricing-card fee-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['junior']['private']['fee_system']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['private']['fee_system']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Fee Management System</h3>
-                        <p>Complete financial management</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card analytics-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['junior']['private']['analytics']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['private']['analytics']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Analytics System</h3>
-                        <p>Data-driven insights</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card complete-package reveal">
-                    <div class="ribbon"><span>Recommended</span></div>
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['junior']['private']['both_modules']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['junior']['private']['both_modules']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Complete Package</h3>
-                        <p>Everything you need</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Senior Secondary School -->
-        <div class="school-type reveal">
-            <div class="school-header">
-                <div class="school-icon">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <h2 class="school-title">Senior Secondary School</h2>
-            </div>
-            
-            <div class="school-type-tabs">
-                <button class="school-tab public active" data-school="senior" data-type="public">Public School</button>
-                <button class="school-tab private" data-school="senior" data-type="private">Private School</button>
-            </div>
-            
-            <div class="pricing-card-grid public-grid" id="senior-public">
-                <div class="pricing-card fee-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['senior']['public']['fee_system']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['public']['fee_system']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Fee Management System</h3>
-                        <p>Complete financial management</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card analytics-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['senior']['public']['analytics']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['public']['analytics']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Analytics System</h3>
-                        <p>Data-driven insights</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card complete-package reveal">
-                    <div class="ribbon"><span>Recommended</span></div>
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['senior']['public']['both_modules']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['public']['both_modules']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Complete Package</h3>
-                        <p>Everything you need</p>
-                        <span class="school-type-badge public">Public School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="pricing-card-grid private-grid" id="senior-private" style="display: none;">
-                <div class="pricing-card fee-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['senior']['private']['fee_system']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['private']['fee_system']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Fee Management System</h3>
-                        <p>Complete financial management</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card analytics-package reveal">
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['senior']['private']['analytics']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['private']['analytics']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Analytics System</h3>
-                        <p>Data-driven insights</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                
-                <div class="pricing-card complete-package reveal">
-                    <div class="ribbon"><span>Recommended</span></div>
-                    <div class="card-price">
-                        <div class="main-price">KES <?php echo number_format($pricing_data['senior']['private']['both_modules']['onboarding']); ?><small> one-time</small></div>
-                        <div class="per-student-price">+ KES <?php echo $pricing_data['senior']['private']['both_modules']['per_student']; ?>/student/term</div>
-                    </div>
-                    <div class="onboarding-fee">One-time onboarding fee included</div>
-                    <div class="package-name">
-                        <h3>Complete Package</h3>
-                        <p>Everything you need</p>
-                        <span class="school-type-badge private">Private School</span>
-                    </div>
-                    <div class="btn">
-                        <a href="register.php" class="price-btn">Get Started <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="note reveal">
-            <p><i class="fas fa-info-circle"></i> All prices are in Kenyan Shillings (KES). Onboarding fee is a one-time payment. Per-student fee is charged termly based on the number of active students in the system. Private school pricing includes premium features and priority support.</p>
-        </div>
-    </div>
-</section>
+    </section>
 </main>
 
 <!-- Footer -->
@@ -1696,15 +1464,9 @@ body.dark-mode .onboarding-fee {
                 <a href="index.php" class="logo">
                     <img src="/images/logo.png" alt="EduScore logo">
                 </a>
-                <p class="footer-brand-text">Modern school management system for Kenyan educational institutions.</p>
-                <div>
-                    <span>Email:</span>
-                    <a href="mailto:eduscoreke@gmail.com" class="footer-link">eduscoreke@gmail.com</a>
-                </div>
-                <div>
-                    <span>Phone:</span>
-                    <a href="tel:+254799115282" class="footer-link">+254 799 115 282</a>
-                </div>
+                <p>Modern school management system for Kenyan educational institutions.</p>
+                <div><span>Email:</span> <a href="mailto:eduscoreke@gmail.com" class="footer-link">eduscoreke@gmail.com</a></div>
+                <div><span>Phone:</span> <a href="tel:+254799115282" class="footer-link">+254 799 115 282</a></div>
             </div>
             <ul class="footer-list">
                 <li><p class="footer-list-title">Links</p></li>
@@ -1729,8 +1491,7 @@ body.dark-mode .onboarding-fee {
     </div>
 </footer>
 
-<!-- Back to Top Button -->
-<a href="#top" class="back-top-btn" aria-label="back top top" data-back-top-btn>
+<a href="#top" class="back-top-btn" aria-label="back to top" data-back-top-btn>
     <ion-icon name="chevron-up" aria-hidden="true"></ion-icon>
 </a>
 
@@ -1777,10 +1538,7 @@ const closeNavbar = function () {
 }
 
 navTogglers.forEach(toggler => toggler.addEventListener("click", toggleNavbar));
-
-if (overlay) {
-    overlay.addEventListener("click", closeNavbar);
-}
+if (overlay) overlay.addEventListener("click", closeNavbar);
 
 // Header active on scroll
 const header = document.querySelector("[data-header]");
@@ -1799,9 +1557,7 @@ window.addEventListener("scroll", function() {
 // Scroll reveal
 const reveals = document.querySelectorAll('.reveal');
 const revealObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add('active');
-    });
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
 }, { threshold: 0.15 });
 reveals.forEach(el => revealObserver.observe(el));
 
@@ -1813,18 +1569,17 @@ document.querySelectorAll('.navbar-link').forEach(link => {
         link.classList.add('active');
     }
 });
+
 // School Type Tabs Functionality
 document.querySelectorAll('.school-tab').forEach(tab => {
     tab.addEventListener('click', function() {
         const school = this.dataset.school;
         const type = this.dataset.type;
         
-        // Update active state for tabs in this school section
         const parentSection = this.closest('.school-type');
         parentSection.querySelectorAll('.school-tab').forEach(t => t.classList.remove('active'));
         this.classList.add('active');
         
-        // Show/hide appropriate grids
         const publicGrid = parentSection.querySelector('.public-grid');
         const privateGrid = parentSection.querySelector('.private-grid');
         
@@ -1838,6 +1593,5 @@ document.querySelectorAll('.school-tab').forEach(tab => {
     });
 });
 </script>
-
 </body>
 </html>

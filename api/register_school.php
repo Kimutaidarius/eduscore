@@ -30,7 +30,9 @@ if (!isset($db) || !($db instanceof PDO)) {
 }
 
 // Load EmailHelper
-require_once __DIR__ . '/../includes/EmailHelper.php';
+if (file_exists(__DIR__ . '/../includes/EmailHelper.php')) {
+    require_once __DIR__ . '/../includes/EmailHelper.php';
+}
 
 // Set header to JSON
 header('Content-Type: application/json');
@@ -114,33 +116,50 @@ if (empty($data['terms'])) {
 }
 
 // Check if school email already exists
-try {
-    $checkSchoolEmail = $db->prepare("SELECT id FROM tblschoolinfo WHERE school_email = ?");
-    $checkSchoolEmail->execute([$data['school_email'] ?? '']);
-    if ($checkSchoolEmail->rowCount() > 0) {
-        $errors['school_email'] = 'This school email is already registered';
+if (empty($errors['school_email'])) {
+    try {
+        $checkSchoolEmail = $db->prepare("SELECT id FROM tblschoolinfo WHERE school_email = ?");
+        $checkSchoolEmail->execute([$data['school_email'] ?? '']);
+        if ($checkSchoolEmail->rowCount() > 0) {
+            $errors['school_email'] = 'This school email is already registered. Please use a different email.';
+        }
+    } catch (Exception $e) {
+        error_log("Error checking school email: " . $e->getMessage());
     }
-} catch (Exception $e) {
-    error_log("Error checking school email: " . $e->getMessage());
 }
 
 // Check if admin email already exists
-try {
-    $checkAdminEmail = $db->prepare("SELECT id FROM tblteachers WHERE email = ?");
-    $checkAdminEmail->execute([$data['admin_email'] ?? '']);
-    if ($checkAdminEmail->rowCount() > 0) {
-        $errors['admin_email'] = 'This admin email is already registered';
+if (empty($errors['admin_email'])) {
+    try {
+        $checkAdminEmail = $db->prepare("SELECT id FROM tblteachers WHERE email = ?");
+        $checkAdminEmail->execute([$data['admin_email'] ?? '']);
+        if ($checkAdminEmail->rowCount() > 0) {
+            $errors['admin_email'] = 'This admin email is already registered. Please use a different email.';
+        }
+    } catch (Exception $e) {
+        error_log("Error checking admin email: " . $e->getMessage());
     }
-} catch (Exception $e) {
-    error_log("Error checking admin email: " . $e->getMessage());
+}
+
+// Check if school phone already exists
+if (empty($errors['school_phone'])) {
+    try {
+        $checkSchoolPhone = $db->prepare("SELECT id FROM tblschoolinfo WHERE school_phone = ?");
+        $checkSchoolPhone->execute([$data['school_phone'] ?? '']);
+        if ($checkSchoolPhone->rowCount() > 0) {
+            $errors['school_phone'] = 'This phone number is already registered. Please use a different phone number.';
+        }
+    } catch (Exception $e) {
+        error_log("Error checking school phone: " . $e->getMessage());
+    }
 }
 
 // Return errors if any
 if (!empty($errors)) {
     http_response_code(400);
+    // Don't include a generic message when there are field errors
     echo json_encode([
         'success' => false,
-        'message' => 'Please fix the validation errors',
         'errors' => $errors
     ]);
     exit;
@@ -213,7 +232,7 @@ try {
     // Generate school initials from school name
     $school_initials = generateSchoolInitials($data['school_name']);
     
-    // Insert into tblschoolinfo - MATCHING DATABASE SCHEMA EXACTLY
+    // Insert into tblschoolinfo
     $insertSchool = $db->prepare("
         INSERT INTO tblschoolinfo (
             school_name, 
@@ -307,7 +326,7 @@ try {
     $secondname = isset($admin_name_parts[1]) ? $admin_name_parts[1] : '';
     $lastname = isset($admin_name_parts[2]) ? $admin_name_parts[2] : '';
     
-    // Insert admin as teacher into tblteachers - MATCHING DATABASE SCHEMA EXACTLY
+    // Insert admin as teacher into tblteachers
     $insertTeacher = $db->prepare("
         INSERT INTO tblteachers (
             teacher_number, 
@@ -433,33 +452,35 @@ try {
     $adminWelcomeSent = false;
     $schoolConfirmationSent = false;
     
-    try {
-        $emailHelper = new EmailHelper();
-        
-        $adminWelcomeSent = $emailHelper->sendWelcomeEmail(
-            trim($data['admin_email']),
-            trim($data['admin_name']),
-            $teacher_number,
-            $data['password']
-        );
-        
-        $schoolConfirmationSent = $emailHelper->sendSchoolConfirmationEmail(
-            trim($data['school_email']),
-            trim($data['school_name']),
-            trim($data['admin_name']),
-            $school_id,
-            $activation_code
-        );
-        
-        if ($adminWelcomeSent) {
-            error_log("Admin welcome email sent to: " . $data['admin_email']);
+    if (class_exists('EmailHelper')) {
+        try {
+            $emailHelper = new EmailHelper();
+            
+            $adminWelcomeSent = $emailHelper->sendWelcomeEmail(
+                trim($data['admin_email']),
+                trim($data['admin_name']),
+                $teacher_number,
+                $data['password']
+            );
+            
+            $schoolConfirmationSent = $emailHelper->sendSchoolConfirmationEmail(
+                trim($data['school_email']),
+                trim($data['school_name']),
+                trim($data['admin_name']),
+                $school_id,
+                $activation_code
+            );
+            
+            if ($adminWelcomeSent) {
+                error_log("Admin welcome email sent to: " . $data['admin_email']);
+            }
+            if ($schoolConfirmationSent) {
+                error_log("School confirmation email sent to: " . $data['school_email']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Email error: " . $e->getMessage());
         }
-        if ($schoolConfirmationSent) {
-            error_log("School confirmation email sent to: " . $data['school_email']);
-        }
-        
-    } catch (Exception $e) {
-        error_log("Email error: " . $e->getMessage());
     }
     
     // Prepare success response
@@ -474,7 +495,7 @@ try {
         'teacher_number' => $teacher_number,
         'license_tier' => $license_tier,
         'trial_expires' => date('F d, Y', strtotime($trial_expires)),
-        'redirect_url' => '../login.php',
+        'redirect_url' => '../login.php?registered=1',
         'principal_name' => $principal_name,
         'activation_code' => $activation_code,
         'school_initials' => $school_initials,
@@ -495,7 +516,8 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Registration failed: Database error occurred'
+        'message' => 'Registration failed: Database error occurred. Please try again.',
+        'errors' => []
     ]);
 } catch (Exception $e) {
     if (isset($db) && $db->inTransaction()) {
@@ -505,7 +527,8 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Registration failed: ' . $e->getMessage()
+        'message' => 'Registration failed: ' . $e->getMessage(),
+        'errors' => []
     ]);
 }
 
